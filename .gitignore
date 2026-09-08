@@ -1,0 +1,65 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  O que NÃO vai para o Git.
+#
+#  Mudou em relação à versão estática, e a mudança é o ponto:
+#
+#  ANTES  `config.js` PRECISAVA continuar versionado, porque o deploy era
+#         direto da pasta, sem etapa de build que injetasse variável de
+#         ambiente — sem ele, o site publicado quebrava. E `env.js`, que
+#         era ignorado, também não ia junto no deploy: precisava ser posto
+#         à mão no que fosse publicado.
+#
+#  AGORA  existe build, e a configuração vem de variáveis de ambiente
+#         (.env.local em desenvolvimento, painel do Vercel em produção).
+#         Nenhum arquivo com segredo precisa ser versionado nem copiado à
+#         mão. O modelo comentado é o .env.example.
+# ═══════════════════════════════════════════════════════════════════════
+
+# Variáveis de ambiente. Segredo em commit fica no histórico para sempre.
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Claude Code
+.claude/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs e temporários
+*.log
+*.tmp
+*.bak
+*~
+
+# A versão estática anterior, guardada como referência durante a migração.
+# `legado/env.js` tem a chave real do Clockify e `legado/config.js` a chave
+# publishable — nenhum dos dois tem por que voltar ao Git agora que a
+# configuração vive no ambiente.
+legado/env.js
+legado/config.js
+
+# Script de uso único com as senhas reais dos acessos em texto puro —
+# nunca pode ir para o Git. O modelo sem senha (03_acessos.exemplo.sql)
+# é que fica versionado.
+supabase/03_acessos.sql
