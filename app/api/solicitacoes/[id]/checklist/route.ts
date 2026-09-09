@@ -26,11 +26,38 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { autorizarApi } from "@/lib/sessao";
 import { clienteDoUsuario } from "@/lib/supabaseServidor";
-import { carregarSolicitacao } from "@/lib/dados";
+import {
+  carregarFilhasDaSolicitacao,
+  carregarSituacaoDasAssinaturas,
+  carregarSolicitacao,
+} from "@/lib/dados";
 import { mensagemDeErro, statusDoErro } from "@/lib/erros";
 import { podeEditar } from "@/lib/papeis";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * GET — o que o POPUP do checklist precisa e a lista não trouxe: as
+ * assinaturas (com a imagem) e a situação delas.
+ *
+ * ── POR QUE NÃO VEM NO CARREGAMENTO GLOBAL ──
+ *
+ * As assinaturas são PNG de até 400 KB cada, quatro por pedido. Trazê-las
+ * em `carregarDados()` — que toda tela chama, porque o menu precisa dos
+ * contadores — fazia abrir o CALENDÁRIO transferir toda assinatura da
+ * empresa. Aqui elas custam uma ida, na hora em que alguém abre a folha.
+ */
+export async function GET(_request: NextRequest, { params }: Contexto) {
+  const autorizacao = await autorizarApi(`/api/solicitacoes/${params.id}/checklist`);
+  if (!autorizacao.ok) return autorizacao.resposta;
+
+  const [{ assinaturas }, situacao] = await Promise.all([
+    carregarFilhasDaSolicitacao(autorizacao.usuario.accessToken, params.id),
+    carregarSituacaoDasAssinaturas(autorizacao.usuario.accessToken, params.id),
+  ]);
+
+  return NextResponse.json({ assinaturas, situacao });
+}
 
 /** Generoso para observação de campo e longe de virar depósito de texto. */
 const OBSERVACOES_MAX = 4000;

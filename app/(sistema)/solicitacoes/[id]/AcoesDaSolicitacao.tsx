@@ -26,7 +26,15 @@ import { Modal } from "@/app/components/Modal";
 import { useAvisos } from "@/app/components/Avisos";
 import { mensagemDoErro, post } from "@/app/components/api";
 import { dataISOparaBR } from "@/lib/formato";
-import type { DiariaValor, Hotel, Item, Projeto, StatusSolicitacao } from "@/lib/tipos";
+import type {
+  DiariaValor,
+  Hotel,
+  Item,
+  Projeto,
+  SolicitacaoDeLista,
+  StatusSolicitacao,
+} from "@/lib/tipos";
+import { ChecklistEmPopup } from "@/app/(sistema)/solicitacoes/[id]/checklist/ChecklistEmPopup";
 import { FormularioDeSolicitacao } from "@/app/(sistema)/solicitacoes/formulario/FormularioDeSolicitacao";
 import type { EstadoDoFormulario } from "@/app/(sistema)/solicitacoes/formulario/estado";
 
@@ -55,6 +63,8 @@ interface Props {
   podeDecidir: boolean;
   catalogo: Item[];
   periodo: { inicio: string | null; fim: string | null };
+  /** A solicitação inteira, para o POPUP do checklist montar a folha. */
+  solicitacao: SolicitacaoDeLista;
   /** `null` quando o pedido não é editável — aí nem o botão aparece. */
   formulario: DadosDoFormulario | null;
 }
@@ -70,6 +80,7 @@ export function AcoesDaSolicitacao({
   podeDecidir,
   catalogo,
   periodo,
+  solicitacao,
   formulario,
 }: Props) {
   const roteador = useRouter();
@@ -182,10 +193,12 @@ export function AcoesDaSolicitacao({
           </button>
         ) : null}
 
+        {/* Popup, e não link: o detalhe já é a tela do pedido, e trocar de
+            página para ver a folha dele — e voltar — é uma ida e volta que
+            não acrescenta nada. Aqui o gatilho é botão com texto, porque as
+            outras ações deste rodapé também são. */}
         {temEquipamento ? (
-          <Link className="btn btn-ghost" href={`/solicitacoes/${id}/checklist`}>
-            Checklist
-          </Link>
+          <ChecklistEmPopup solicitacao={solicitacao} catalogo={catalogo} rotulo="Checklist" />
         ) : null}
 
         {podeDecidir ? (

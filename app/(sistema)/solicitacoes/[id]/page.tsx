@@ -601,6 +601,9 @@ export default async function PaginaDeDetalhe({ params }: { params: { id: string
           podeDecidir={podeAprovar(usuario.id, usuario.papel, s, dados.projetos)}
           catalogo={dados.catalogo}
           periodo={{ inicio: s.periodo_inicio, fim: s.periodo_fim }}
+          // Para o popup do checklist montar a folha sem uma segunda ida ao
+          // banco: a solicitação já está carregada aqui.
+          solicitacao={s}
           // O formulário de edição abre em POPUP sobre este detalhe, e ele
           // não consulta banco: recebe os cadastros prontos. Só é montado
           // quando o pedido é editável — pedido encerrado não tem lápis.

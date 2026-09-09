@@ -49,6 +49,7 @@ import { csvNumero, dataISOparaBR, diasDeCampo, formatarMoeda } from "@/lib/form
 import { BotaoExportarCsv, CabecalhoDeSecao, Paginacao, Selo, TabelaVazia } from "@/app/components/Tabela";
 import { Icone } from "@/app/components/Icone";
 import { RegistrarConferencia } from "@/app/(sistema)/conferencia/RegistrarConferencia";
+import { ChecklistEmPopup } from "@/app/(sistema)/solicitacoes/[id]/checklist/ChecklistEmPopup";
 
 /** Onde o atalho de conferência da lista faz sentido — o mesmo intervalo
  *  que `solicitacoesParaConferencia` usa para montar a fila da aba. */
@@ -321,13 +322,7 @@ export function ListaDeSolicitacoes({
                         </button>
                       ) : null}
                       {s.equipamentos.length ? (
-                        <Link
-                          className="btn-icon"
-                          href={`/solicitacoes/${s.id}/checklist`}
-                          title="Checklist de campo"
-                        >
-                          <Icone nome="checklist" />
-                        </Link>
+                        <ChecklistEmPopup solicitacao={s} catalogo={catalogo} />
                       ) : null}
                       {/* O atalho de conferência direto da lista, como no
                           `abrirConferenciaAuto` da versão anterior: o modo
