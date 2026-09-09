@@ -337,7 +337,24 @@ button,input,select,textarea{font-family:inherit}
    conteúdo (flex:0 0 auto), então nada muda quando há registros. */
 .table-scroll{flex:1;overflow-y:auto;overflow-x:auto;min-height:0;display:flex;flex-direction:column}
 .table-scroll>.art-table{flex:0 0 auto}
-.art-table{width:100%;border-collapse:collapse;font-size:.82rem}
+/* ── AS COLUNAS TÊM LARGURA EQUIVALENTE ──
+   `table-layout` era `auto`, e aí a largura de cada coluna vinha do
+   CONTEÚDO: quem tinha o texto mais comprido ficava enorme e as outras
+   apertadas. Numa tabela de nove colunas isso deixa três largas e seis
+   estreitas, e o cabeçalho fica com os rótulos espalhados a distâncias
+   irregulares — parece desalinhado porque está.
+
+   Com `fixed`, o navegador divide a largura da tabela IGUALMENTE entre as
+   colunas que não pedirem tamanho. As únicas que pedem são as de ações
+   (têm botões de tamanho fixo dentro, não texto) — todas as outras ficam
+   com a mesma fatia, e o cabeçalho passa a ser uma faixa de rótulos
+   igualmente espaçados.
+
+   O preço: célula com texto longo QUEBRA em mais linhas em vez de esticar
+   a coluna. É o preço certo — a linha fica mais alta uma vez, e em troca
+   a tabela inteira fica regular. `overflow-wrap:anywhere` em `.cel-texto`
+   para nome de projeto sem espaço não estourar a fatia. */
+.art-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:.82rem}
 .art-table thead{background:var(--bg-secondary);position:sticky;top:0;z-index:10}
 /* A LINHA DE BAIXO DO CABEÇALHO É `box-shadow`, NÃO `border`.
    Com `border-collapse:collapse`, a borda pertence à tabela e não à célula
@@ -362,18 +379,29 @@ button,input,select,textarea{font-family:inherit}
    uns 30px.
 
    O nowrap é do RÓTULO, não da célula: `td` continua podendo quebrar, que
-   é o que mantém a tabela dentro da tela. Se em alguma tela isto voltar a
-   forçar rolagem lateral, a saída é encurtar o texto do rótulo — não
-   deixá-lo quebrar de novo.
+   é o que mantém a tabela dentro da tela.
 
-   `vertical-align:top` no corpo pelo mesmo motivo do subgrid da grade de
-   informação: com células que podem quebrar em duas linhas, o alinhamento
-   pelo meio faria cada valor começar numa altura diferente. */
+   E o rótulo fica CENTRADO na sua fatia. Com as colunas de largura
+   equivalente (ver `table-layout:fixed` acima), centrado é o que faz a
+   faixa de cabeçalho ter os rótulos a distâncias iguais uns dos outros —
+   à esquerda, cada um encostava na borda da própria fatia e a distância
+   entre dois vizinhos variava com o tamanho das palavras.
+
+   `overflow:hidden` + `text-overflow:ellipsis` são a rede de segurança do
+   nowrap: em tela estreita demais para a fatia caber o rótulo, ele ganha
+   "…" em vez de invadir o desenho do vizinho. Texto sobreposto é ilegível
+   e não avisa; reticências avisam.
+
+   `vertical-align:bottom` no rótulo e `top` no corpo pelo mesmo motivo do
+   subgrid da grade de informação: com células que podem quebrar em duas
+   linhas, o alinhamento pelo meio faria cada valor começar numa altura
+   diferente. */
 .art-table th{
-  padding:.5rem .55rem;text-align:left;font-weight:800;color:var(--text-secondary);
+  padding:.5rem .55rem;text-align:center;font-weight:800;color:var(--text-secondary);
   text-transform:uppercase;font-size:.63rem;letter-spacing:.04em;
   box-shadow:inset 0 -1px 0 var(--border-color);
-  white-space:nowrap;vertical-align:bottom;line-height:1.2
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  vertical-align:bottom;line-height:1.2
 }
 .art-table td{
   padding:.5rem .55rem;border-bottom:1px solid var(--border-color);
@@ -384,47 +412,55 @@ button,input,select,textarea{font-family:inherit}
 .art-table .cel-num,.art-table .cel-inteiro{white-space:nowrap}
 .art-table tbody tr:last-child td{border-bottom:none}
 .art-table tbody tr:hover{background:var(--bg-card-hover)}
-/* ── A COLUNA DE AÇÕES CABE NO QUE TEM DENTRO ──
-   Era `width:100px`. Largura fixa numa coluna cujo conteúdo varia (dois
-   ícones aqui, três e um botão com texto ali) é o que fazia os ícones se
-   SOBREPOREM: `td.table-actions` é um flex, `.btn-icon` tem largura fixa mas
-   `flex-shrink` continuava em 1, então os botões eram comprimidos abaixo dos
-   27px e o desenho de um invadia o do vizinho.
+/* ── A COLUNA DE AÇÕES É A ÚNICA QUE PEDE TAMANHO ──
+   Todas as outras dividem a largura por igual (`table-layout:fixed`). Esta
+   não pode: dentro dela não há texto que quebre, há BOTÕES de tamanho fixo,
+   e uma fatia igual à das outras deixaria os ícones comprimidos abaixo dos
+   27px, um invadindo o desenho do outro — foi exatamente esse o bug de
+   ícones sobrepostos.
 
-   `width:1%` + `white-space:nowrap` é o idioma de tabela para "a coluna toma
-   a menor largura que couber o conteúdo": o navegador dá a ela o necessário
-   e distribui o resto entre as outras. Com `flex-shrink:0` nos botões, nada
-   mais é comprimido — se faltar espaço, a tabela rola, que é recuperável. */
-.col-acoes,.col-acoes-lg,.col-acoes-fila{width:1%;white-space:nowrap;text-align:center}
+   Então ela pede o que precisa e sai do rateio. Os números vêm da conta do
+   pior caso de cada tipo:
+
+     `col-acoes`       até 4 ícones de 27px + 3 vãos + o padding da célula.
+                       Solicitações é o pior caso: olho, lápis, checklist e
+                       conferência.
+     `col-acoes-fila`  o olho MAIS o Aprovar/Recusar do líder, que são
+                       botões com texto — os únicos que sobraram.
+
+   `flex-shrink:0` nos botões (abaixo) garante que, se a tela for estreita
+   demais, quem cede é a tabela rolando — não o desenho do ícone. */
+.col-acoes{width:150px;white-space:nowrap;text-align:center}
+.col-acoes-fila{width:220px;white-space:nowrap;text-align:center}
 .table-actions{display:flex;gap:.3rem;justify-content:center;flex-wrap:nowrap}
 .table-actions>*{flex-shrink:0}
 /* ── A CONVENÇÃO DE ALINHAMENTO DAS TABELAS ──
-   `tabela-centralizada` centralizava TUDO, e é isso que desalinhava: texto
-   de tamanhos diferentes centralizado tem as duas bordas irregulares, e
-   dinheiro centralizado não põe `R$ 1.200,00` embaixo de `R$ 90,00` — a
-   vírgula cai em lugar diferente em cada linha, que é o que impede somar de
-   olho.
+   O texto era alinhado à ESQUERDA, e isso fazia sentido enquanto as colunas
+   tinham larguras diferentes: numa coluna larga demais, texto centrado fica
+   flutuando no meio de espaço vazio. Com as colunas de largura equivalente
+   (`table-layout:fixed`) a fatia é do tamanho do conteúdo típico, e aí o
+   CENTRO é o que alinha de verdade — cada valor sob o próprio rótulo, e
+   todos os rótulos a distâncias iguais.
 
-   A convenção agora é a de qualquer tabela de dado:
+   Então a convenção é de duas linhas:
 
-     TEXTO   → esquerda. É onde a leitura começa, e é o que faz a coluna ter
-               uma borda reta para o olho descer.
-     NÚMERO  → direita, com `tabular-nums`. À direita as ordens de grandeza
-               se empilham (unidade sob unidade, milhar sob milhar); com
-               dígitos de largura fixa, elas se empilham de verdade — sem
-               isso o "1" estreito desalinha a coluna inteira.
-     SELO    → centro. Uma pastilha é um símbolo, não texto corrido: centrada
-               ela fica sob o rótulo da coluna.
+     TUDO     → centro, sob o rótulo centrado.
+     NÚMERO   → direita, com `tabular-nums`, RÓTULO INCLUÍDO. É a única
+                exceção, e não é gosto: à direita as ordens de grandeza se
+                empilham (unidade sob unidade, milhar sob milhar), e é isso
+                que permite somar de olho e comparar previsto com real. Um
+                `R$ 1.200,00` centrado não põe a vírgula embaixo da vírgula
+                de `R$ 90,00`. O rótulo acompanha a coluna porque rótulo
+                centrado sobre número à direita é o desalinhamento mais
+                visível de todos.
 
-   `tabela-centralizada` continua existindo e continua sendo o padrão de
-   CENTRO, porque metade das colunas do sistema é selo ou marca de
-   conferência. O que muda é que agora há como dizer o contrário, coluna por
-   coluna, com `.cel-texto` e `.cel-num`. */
+   `.cel-num` marca a coluna de número. `.cel-texto` deixou de significar
+   "alinha à esquerda" e passou a significar "coluna de TEXTO, que pode
+   quebrar": o que ela garante hoje é a quebra em qualquer ponto, para nome
+   longo de projeto ou de equipamento não estourar a fatia. */
 .tabela-centralizada th,.tabela-centralizada td{text-align:center}
 
-/* Vale dentro e fora de `tabela-centralizada` — a especificidade de duas
-   classes vence a de uma. */
-.art-table th.cel-texto,.art-table td.cel-texto{text-align:left}
+.art-table td.cel-texto{overflow-wrap:anywhere}
 .art-table th.cel-num,.art-table td.cel-num{
   text-align:right;
   /* Dígitos de largura igual: é isto que faz a coluna de dinheiro empilhar.
@@ -1044,10 +1080,11 @@ td.table-actions.acoes-fila{flex-wrap:nowrap;justify-content:center;gap:.3rem}
   .pagination-info,
   .pagination-per-page{margin:0}
 
-  /* Colunas de ação das tabelas ganham espaço extra para os botões
-     tocarem bem (a tabela rola na horizontal se não couber). */
-  .col-acoes{width:110px}
-  .col-acoes-lg{width:180px}
+  /* No toque o ícone cresce para 30px (abaixo), então a coluna de ações
+     cresce com ele: quatro ícones de 30px mais os vãos não caberiam nos
+     150px do desktop, e o que não cabe volta a se sobrepor. A tabela rola
+     na horizontal se não couber, que é recuperável. */
+  .col-acoes{width:160px}
   .btn-icon{width:30px;height:30px}
 
   .modal-overlay{padding:.5rem}
