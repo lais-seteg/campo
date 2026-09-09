@@ -47,8 +47,8 @@
 import type { ReactNode } from "react";
 import { Selo, TabelaVazia } from "@/app/components/Tabela";
 import { classeDoSst, classeDoStatus } from "@/lib/listas";
-import { dataCurtaBR, formatarMoeda } from "@/lib/formato";
-import { equipeResumo, periodoTexto } from "@/lib/consultas";
+import { dataCurtaBR } from "@/lib/formato";
+import { equipeResumo, periodoTexto, previstoContraReal } from "@/lib/consultas";
 import type { Hotel, SolicitacaoDeLista } from "@/lib/tipos";
 
 /** As colunas que uma fila pode pedir. Ver `COLUNAS` para o que cada uma
@@ -129,9 +129,14 @@ const COLUNAS: Record<ColunaDeFila, Coluna> = {
   },
   // ── ONDE A EQUIPE DORME ──
   //
-  // Uma linha por cidade, com a casa e as datas DAQUELA hospedagem — que
-  // nem sempre são as do campo: quem chega na véspera dorme uma noite a
-  // mais que os dias de trabalho.
+  // Cidade, casa e as datas DAQUELA hospedagem — que nem sempre são as do
+  // campo: quem chega na véspera dorme uma noite a mais que os dias de
+  // trabalho.
+  //
+  // Tudo numa linha, separado por "·", mesmo com três cidades. Empilhado —
+  // como já esteve — a linha do pedido ficava três vezes mais alta que as
+  // vizinhas e a tabela perdia o alinhamento. O que não couber é cortado
+  // com "…" e volta inteiro na dica do mouse.
   //
   // Serve às duas metades da aba Logística. Na fila do que falta fechar,
   // "hotel a definir" é justamente o que se procura — diz qual pedido ainda
@@ -142,38 +147,25 @@ const COLUNAS: Record<ColunaDeFila, Coluna> = {
     classe: "cel-texto",
     celula: (s, { hotelPorId }) => {
       if (!s.hospedagens.length) return "—";
-      return (
-        <ul className="cel-lista">
-          {s.hospedagens.map((h) => {
-            const hotel = h.hotel_id ? hotelPorId.get(h.hotel_id) : undefined;
-            const periodo =
-              h.entrada && h.saida ? `${dataCurtaBR(h.entrada)} a ${dataCurtaBR(h.saida)}` : "";
-            return (
-              <li key={h.id}>
-                <strong>{h.cidade}</strong>
-                <span>{hotel ? hotel.nome : "hotel a definir"}</span>
-                {periodo ? <span>{periodo}</span> : null}
-              </li>
-            );
-          })}
-        </ul>
-      );
+      return s.hospedagens
+        .map((h) => {
+          const hotel = h.hotel_id ? hotelPorId.get(h.hotel_id) : undefined;
+          const periodo =
+            h.entrada && h.saida ? ` (${dataCurtaBR(h.entrada)} a ${dataCurtaBR(h.saida)})` : "";
+          return `${h.cidade} · ${hotel ? hotel.nome : "hotel a definir"}${periodo}`;
+        })
+        .join(" · ");
     },
   },
-  // Previsto e Real numa coluna só, um embaixo do outro: eles se leem
-  // SEMPRE juntos ("quanto era × quanto foi"), e separados gastavam duas
-  // larguras de dinheiro para dizer uma comparação.
+  // Previsto e Real numa coluna só, LADO A LADO: eles se leem sempre juntos
+  // ("quanto era × quanto foi"), e em duas colunas gastavam duas larguras de
+  // dinheiro para dizer uma comparação. Empilhados — como já estiveram —
+  // dobravam a altura da linha e desalinhavam a tabela inteira.
   valores: {
     titulo: "Previsto × Real",
     classe: "cel-num",
     soComValores: true,
-    celula: (s) => (
-      <>
-        {formatarMoeda(s.previsto_total)}
-        <br />
-        {formatarMoeda(s.real_total)}
-      </>
-    ),
+    celula: (s) => previstoContraReal(s),
   },
   sst: {
     titulo: "SST",

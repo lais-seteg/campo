@@ -424,13 +424,32 @@ button,input,select,textarea{font-family:inherit}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   vertical-align:bottom;line-height:1.2
 }
+/* ── UMA LINHA POR CÉLULA, SEMPRE ──
+   As células quebravam em duas e três linhas quando o texto era longo, e
+   algumas empilhavam de propósito (previsto em cima do real, "estimado"
+   embaixo do valor). O efeito era o mesmo nos dois casos: cada linha da
+   tabela com uma altura diferente. Aí a fileira deixa de ser uma GRADE —
+   onde o olho desce reto comparando o mesmo campo — e vira uma pilha de
+   parágrafos, onde comparar dois registros exige ler os dois inteiros.
+
+   Então: `nowrap` no corpo também, não só no rótulo. O que não couber é
+   CORTADO com "…", e o texto inteiro volta na dica do mouse — posta pelo
+   `TabelaRolavel`, que mede quais células cortaram de verdade e só marca
+   essas. A informação não se perde; ela deixa de gastar altura.
+
+   `vertical-align:middle` porque agora todas as linhas de uma célula são
+   uma só: `top` existia para alinhar o começo de células que quebravam em
+   alturas diferentes, e sem quebra ele só empurra o texto para cima do
+   centro da linha. */
 .art-table td{
   padding:.5rem .55rem;border-bottom:1px solid var(--border-color);
-  color:var(--text-primary);vertical-align:top
+  color:var(--text-primary);vertical-align:middle;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
-/* Célula que NÃO deve quebrar: data, dinheiro e período perdem o sentido
-   partidos ao meio ("31/12/" numa linha, "2026" na outra). */
-.art-table .cel-num,.art-table .cel-inteiro{white-space:nowrap}
+/* A coluna de AÇÕES é a exceção: dentro dela há botões, não texto. Cortar
+   com "…" esconderia metade de um ícone, e `overflow:hidden` cortaria o
+   anel de foco de quem navega por teclado. */
+.art-table td.table-actions{overflow:visible;text-overflow:clip}
 .art-table tbody tr:last-child td{border-bottom:none}
 .art-table tbody tr:hover{background:var(--bg-card-hover)}
 /* ── A COLUNA DE AÇÕES É A ÚNICA QUE PEDE TAMANHO ──
@@ -475,13 +494,13 @@ button,input,select,textarea{font-family:inherit}
                 centrado sobre número à direita é o desalinhamento mais
                 visível de todos.
 
-   `.cel-num` marca a coluna de número. `.cel-texto` deixou de significar
-   "alinha à esquerda" e passou a significar "coluna de TEXTO, que pode
-   quebrar": o que ela garante hoje é a quebra em qualquer ponto, para nome
-   longo de projeto ou de equipamento não estourar a fatia. */
+   `.cel-num` marca a coluna de número. `.cel-texto` já significou "alinha à
+   esquerda" e depois "pode quebrar"; hoje não precisa fazer nenhuma das
+   duas — nada quebra mais, e o alinhamento é o da tabela. Ela sobrevive
+   como MARCA de "esta coluna é texto", que é o que distingue uma coluna
+   cortável de uma coluna de número (que nunca deve ser cortada). */
 .tabela-centralizada th,.tabela-centralizada td{text-align:center}
 
-.art-table td.cel-texto{overflow-wrap:anywhere}
 .art-table th.cel-num,.art-table td.cel-num{
   text-align:right;
   /* Dígitos de largura igual: é isto que faz a coluna de dinheiro empilhar.
@@ -493,26 +512,12 @@ button,input,select,textarea{font-family:inherit}
    número à direita. Cabeçalho centralizado sobre número à direita é o
    desalinhamento mais visível de todos. */
 .art-table thead th.cel-num{text-align:right}
-/* A segunda linha de uma célula: a composição por trás do número (quantas
-   categorias somam aquele total, quantas avarias somam aquele custo). */
+/* Detalhe MENOR ao lado do número — a composição por trás dele ("(3
+   categorias)", "(estimado)"). Era uma SEGUNDA LINHA da célula, e uma
+   segunda linha numa célula só faz a linha inteira da tabela ficar mais
+   alta que as vizinhas, para dizer um contexto que cabe entre parênteses.
+   Continua existindo para uso fora de tabela. */
 .tabela-sub{color:var(--text-muted);font-size:.68rem}
-
-/* ── LISTA DENTRO DE UMA CÉLULA ──
-   Para a célula que guarda VÁRIAS coisas do mesmo tipo — as cidades da
-   hospedagem, cada uma com sua casa e seu período. Grudadas numa frase só
-   ("FORTALEZA · Hotel A · CAUCAIA · Hotel B") não se sabe onde uma acaba e
-   a outra começa; é o mesmo problema que a folha do checklist tinha.
-
-   Sem marcador e sem recuo: dentro de uma célula o marcador competiria com
-   a borda da coluna. O que separa uma da outra é a linha; o que separa os
-   pedaços de uma é o "·", que nasce do CSS para nunca sobrar sozinho
-   quando o último pedaço não existe. */
-.cel-lista{list-style:none;margin:0;padding:0}
-.cel-lista li{line-height:1.3}
-.cel-lista li+li{margin-top:.2rem}
-.cel-lista strong{font-weight:700;display:block}
-.cel-lista span{font-size:.74rem;color:var(--text-secondary)}
-.cel-lista span+span::before{content:" · "}
 
 /* ── OS BOTÕES DE AÇÃO FICAM NUMA LINHA ──
    Eles podiam quebrar em duas (`flex-wrap:wrap`) porque os gatilhos eram

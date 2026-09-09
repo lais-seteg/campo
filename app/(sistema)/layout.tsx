@@ -17,6 +17,7 @@ import { exigirSessao, tokenDaSessao } from "@/lib/sessao";
 import { carregarDados } from "@/lib/dados";
 import { BarraLateral } from "@/app/components/BarraLateral";
 import { AvisoDeEstrutura } from "@/app/components/AvisoDeEstrutura";
+import { DicasDaTabela } from "@/app/components/DicasDaTabela";
 import { abasDoPapel } from "@/lib/navegacao";
 import { contadoresDoMenu } from "@/lib/consultas";
 import { cargoDoPerfil, ehLider, podeAbrirPainel } from "@/lib/papeis";
@@ -90,6 +91,20 @@ export default async function LayoutDoSistema({ children }: { children: React.Re
         <AvisoDeEstrutura estrutura={dados.estrutura} />
         {children}
       </main>
+      {/* ── A DICA DO QUE NÃO COUBE ──
+          Toda célula de tabela ocupa uma linha só, e o que passa da largura
+          é cortado com "…". Este componente devolve o texto inteiro no
+          `title` — mas SÓ nas células que realmente cortaram, medindo depois
+          de a tabela estar desenhada.
+
+          Mora no layout, e não em cada tabela, porque assim alcança também
+          as que ficam dentro de MODAIS (o painel de logística, a folha de
+          conferência, o previsto × real do olho) — justamente as que
+          ninguém lembraria de embrulhar uma a uma.
+
+          Não desenha nada: se falhar, a célula continua cortada pelo CSS e
+          o que se perde é a dica. */}
+      <DicasDaTabela />
     </div>
   );
 }

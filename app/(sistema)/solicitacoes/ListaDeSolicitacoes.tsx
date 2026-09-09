@@ -41,6 +41,7 @@ import {
   equipeResumo,
   filtrarSolicitacoes,
   periodoTexto,
+  previstoContraReal,
   totalDaSolicitacao,
   type FiltrosDeSolicitacao,
 } from "@/lib/consultas";
@@ -268,9 +269,9 @@ export function ListaDeSolicitacoes({
                   estão INTEIROS no popup do olho, que é onde se vai quando a
                   pergunta passa a ser sobre um pedido só.
 
-                  Previsto e Real numa coluna só, uma linha embaixo da outra:
-                  eles se leem SEMPRE juntos ("quanto era × quanto foi"), e
-                  separados gastavam duas larguras de dinheiro para dizer uma
+                  Previsto e Real numa coluna só, LADO A LADO: eles se leem
+                  sempre juntos ("quanto era × quanto foi"), e em duas colunas
+                  gastavam duas larguras de dinheiro para dizer uma
                   comparação. */}
               <thead>
                 <tr>
@@ -296,13 +297,7 @@ export function ListaDeSolicitacoes({
                     <td className="cel-texto">{s.escopo || "—"}</td>
                     <td className="cel-texto">{s.destino || "—"}</td>
                     <td className="cel-texto">{equipeResumo(s)}</td>
-                    {verValores ? (
-                      <td className="cel-num">
-                        {formatarMoeda(s.previsto_total)}
-                        <br />
-                        {formatarMoeda(s.real_total)}
-                      </td>
-                    ) : null}
+                    {verValores ? <td className="cel-num">{previstoContraReal(s)}</td> : null}
                     <td>
                       <Selo texto={s.status} classe={classeDoStatus(s.status)} />
                     </td>

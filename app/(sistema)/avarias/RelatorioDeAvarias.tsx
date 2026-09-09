@@ -254,15 +254,15 @@ export function RelatorioDeAvarias({
                     <td>{a.gravidade}</td>
                     <td className="cel-texto">{a.descricao}</td>
                     <td>{a.providencia}</td>
+                    {/* "(estimado)" ao LADO e não embaixo: como segunda
+                        linha ele dobrava a altura só das avarias ainda
+                        abertas, e a tabela ficava com linhas de duas
+                        alturas. O aviso continua — número provisório sem
+                        aviso vira definitivo na cabeça de quem lê. */}
                     <td className="cel-num">
-                      {a.custo_real == null ? (
-                        <>
-                          {formatarMoeda(a.custo_estimado)}
-                          <div className="tabela-sub">estimado</div>
-                        </>
-                      ) : (
-                        formatarMoeda(a.custo_real)
-                      )}
+                      {a.custo_real == null
+                        ? `${formatarMoeda(a.custo_estimado)} (estimado)`
+                        : formatarMoeda(a.custo_real)}
                     </td>
                     <td className="table-actions">
                       <button className="btn-icon" type="button" title="Editar avaria" onClick={() => abrir(a)}>

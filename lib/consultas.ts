@@ -154,6 +154,24 @@ export function resumoBlocos(s: SolicitacaoDeLista): string {
   return partes.join(" · ") || "Sem itens";
 }
 
+/**
+ * "R$ 1.000,00 × R$ 1.200,00" — o par que a coluna "Previsto × Real" mostra.
+ *
+ * Os dois números ficavam um EMBAIXO do outro, separados por `<br/>`. Lidos
+ * assim eles não se comparavam: sem rótulo, a linha de cima podia ser
+ * qualquer uma das duas, e a célula tinha o dobro da altura das vizinhas —
+ * o que desalinha a tabela inteira, porque a altura de uma linha é a da
+ * célula mais alta dela.
+ *
+ * Lado a lado e na ordem do rótulo da coluna, o "×" faz o papel do "contra"
+ * e a leitura fica igual à do cabeçalho. Uma função só para as duas tabelas
+ * que mostram o par (a lista e as filas) — duas cópias é onde uma delas
+ * inverte a ordem.
+ */
+export function previstoContraReal(s: Pick<Solicitacao, "previsto_total" | "real_total">): string {
+  return `${formatarMoeda(s.previsto_total)} × ${formatarMoeda(s.real_total)}`;
+}
+
 // `cursoCurto()` morava aqui: o rótulo abreviado do status de curso
 // ("+12,4%", "s/ previsto") para a coluna estreita de Curso. A coluna saiu
 // das tabelas — o curso do gasto não é o que se pergunta a uma lista — e o

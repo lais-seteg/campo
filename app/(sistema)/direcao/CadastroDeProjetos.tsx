@@ -484,7 +484,7 @@ export function CadastroDeProjetos({
                   <th>Clockify</th>
                   <th>Início</th>
                   <th>Fim</th>
-                  <th>Gasto previsto</th>
+                  <th className="cel-num">Gasto previsto</th>
                   <th>Campos</th>
                   <th>A aprovar</th>
                   <th>Situação</th>
@@ -507,12 +507,13 @@ export function CadastroDeProjetos({
                     <td>{p.codigo_clockify || "—"}</td>
                     <td>{dataISOparaBR(p.data_inicio) || "—"}</td>
                     <td>{dataISOparaBR(p.data_fim) || "—"}</td>
-                    <td>
-                      {formatarMoeda(totalPrevistoDo(p.id))}
-                      <br />
-                      <small className="tabela-sub">
-                        {(gastosPorProjeto.get(p.id) ?? []).length} categoria(s)
-                      </small>
+                    {/* A composição ao LADO do total e não embaixo: como
+                        segunda linha ela dobrava a altura de TODA linha da
+                        tabela, para dizer um número que é contexto do valor
+                        e não um valor à parte. */}
+                    <td className="cel-num">
+                      {formatarMoeda(totalPrevistoDo(p.id))} ({(gastosPorProjeto.get(p.id) ?? []).length}{" "}
+                      categoria(s))
                     </td>
                     <td>{campos[p.id] ?? 0}</td>
                     <td>{aAprovar[p.id] ?? 0}</td>
