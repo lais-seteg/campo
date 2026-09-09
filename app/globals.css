@@ -460,6 +460,12 @@ td.table-actions.acoes-fila{flex-wrap:wrap;justify-content:center;gap:.25rem}
 /* ─── MODAL "Informações do Equipamento" ─────────── */
 .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.75rem 1rem;margin-bottom:1rem}
 .info-grid .full{grid-column:1/-1}
+/* DUAS colunas, e não a linha inteira: é o campo comprido que tem um PAR ao
+   lado — recebimento e entrega do veículo, que se leem comparando um com o
+   outro. Ocupando a linha toda, os dois empilhavam e a comparação exigia
+   subir e descer o olho. Na tela estreita o grid cai para uma coluna e o
+   `span 2` se reduz sozinho, então eles voltam a empilhar onde é certo. */
+.info-grid .duplo{grid-column:span 2}
 .info-grid span{display:block;font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.15rem}
 .info-grid strong{font-size:.84rem;color:var(--text-primary);font-weight:700}
 .modal-subtitle{font-size:.74rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin:1.1rem 0 .5rem;padding-top:.9rem;border-top:1px solid var(--border-color)}

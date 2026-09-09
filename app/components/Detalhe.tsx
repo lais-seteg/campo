@@ -6,9 +6,34 @@
 
 import type { ReactNode } from "react";
 
-export function Info({ rotulo, largo, children }: { rotulo: string; largo?: boolean; children: ReactNode }) {
+/**
+ * Um campo da grade de informação.
+ *
+ * `largo` ocupa a LINHA INTEIRA — para texto corrido que não tem tamanho
+ * previsível (observação, motivo de recusa, dados de transferência).
+ *
+ * `duplo` ocupa DUAS COLUNAS. Existe para o caso do meio: campo comprido
+ * demais para uma coluna de 180px, mas que não deveria tomar a linha toda
+ * porque tem um PAR natural ao lado dele — recebimento e entrega do
+ * veículo, que se leem comparando um com o outro. Com `largo` os dois
+ * empilhavam e a comparação exigia subir e descer o olho.
+ *
+ * Na tela estreita o grid encolhe as duas colunas para uma e eles voltam a
+ * empilhar sozinhos, o que é o certo lá.
+ */
+export function Info({
+  rotulo,
+  largo,
+  duplo,
+  children,
+}: {
+  rotulo: string;
+  largo?: boolean;
+  duplo?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <div className={largo ? "full" : undefined}>
+    <div className={largo ? "full" : duplo ? "duplo" : undefined}>
       <span>{rotulo}</span>
       <strong>{children}</strong>
     </div>

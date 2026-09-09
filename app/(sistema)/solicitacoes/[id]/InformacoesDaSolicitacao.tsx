@@ -201,11 +201,15 @@ export function InformacoesDaSolicitacao({
             <Info rotulo="Placa">{s.transporte_placa || "—"}</Info>
             <Info rotulo="Valor previsto">{formatarMoeda(s.previsto_veiculo)}</Info>
             <Info rotulo="Valor REAL">{formatarMoeda(s.real_veiculo)}</Info>
-            <Info rotulo="Recebimento" largo>
+            {/* Lado a lado, e não um sobre o outro: retirar e devolver o
+                veículo é o mesmo dado em dois momentos, e se lê comparando —
+                mesmo local? quantos dias? Empilhados (era `largo`, a linha
+                inteira) a comparação exigia subir e descer o olho. */}
+            <Info rotulo="Recebimento" duplo>
               {s.veiculo_local_retirada || "—"} · {dataISOparaBR(s.veiculo_data_retirada) || "—"}{" "}
               {s.veiculo_hora_retirada ?? ""}
             </Info>
-            <Info rotulo="Entrega" largo>
+            <Info rotulo="Entrega" duplo>
               {s.veiculo_local_entrega || "—"} · {dataISOparaBR(s.veiculo_data_entrega) || "—"}{" "}
               {s.veiculo_hora_entrega ?? ""}
             </Info>
