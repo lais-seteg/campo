@@ -13,13 +13,30 @@
 import { exigirSessao } from "@/lib/sessao";
 import { carregarDados } from "@/lib/dados";
 import { CabecalhoDeSecao } from "@/app/components/Tabela";
-import { TabelaDeFila } from "@/app/components/TabelaDeFila";
+import { TabelaDeFila, type ColunaDeFila } from "@/app/components/TabelaDeFila";
 import { DetalheEmPopup } from "@/app/(sistema)/solicitacoes/[id]/DetalheEmPopup";
 import { FecharLogistica } from "@/app/(sistema)/logistica/FecharLogistica";
 import { porStatus } from "@/lib/consultas";
 import { podeVerValores } from "@/lib/papeis";
 
 export const dynamic = "force-dynamic";
+
+// Aqui não se decide gasto, se EXECUTA: fechar carro, hotel e material. As
+// perguntas são para onde, para quando e quantas pessoas — nada mais.
+//
+// Sem Solicitante e sem Previsto × Real de propósito: quem confirma
+// logística não escolhe pelo nome de quem pediu nem autoriza o valor. Os
+// dois estão no olho, para quando a pergunta for sobre um pedido só.
+//
+// Sem Status: a fila é exatamente o que está "Aprovada".
+const COLUNAS: readonly ColunaDeFila[] = [
+  "codigo",
+  "cliente",
+  "escopo",
+  "destino",
+  "periodo",
+  "equipe",
+];
 
 export default async function PaginaDeLogistica() {
   const usuario = await exigirSessao();
@@ -32,11 +49,9 @@ export default async function PaginaDeLogistica() {
     <section className="secao active">
       <CabecalhoDeSecao titulo="Logística a confirmar" direita="Veículo, hospedagem e material reservado" />
 
-      {/* Sem coluna de Status: a fila é exatamente o que está "Aprovada". A
-          coluna que importa aqui é "Contém" — é ela que diz se falta
-          fechar veículo, hotel ou material. */}
       <TabelaDeFila
         fila={fila}
+        colunas={COLUNAS}
         verValores={podeVerValores(usuario, dados.projetos)}
         acoes={(s) => (
           <>

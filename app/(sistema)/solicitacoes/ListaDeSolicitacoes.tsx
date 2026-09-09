@@ -38,14 +38,13 @@ import {
 } from "@/lib/tipos";
 import {
   FILTROS_VAZIOS,
-  cursoCurto,
   equipeResumo,
   filtrarSolicitacoes,
   periodoTexto,
   totalDaSolicitacao,
   type FiltrosDeSolicitacao,
 } from "@/lib/consultas";
-import { classeDoCurso, classeDoStatus } from "@/lib/listas";
+import { classeDoStatus } from "@/lib/listas";
 import { csvNumero, dataISOparaBR, diasDeCampo, formatarMoeda } from "@/lib/formato";
 import { BotaoExportarCsv, CabecalhoDeSecao, Paginacao, Selo, TabelaVazia } from "@/app/components/Tabela";
 import { Icone } from "@/app/components/Icone";
@@ -257,29 +256,32 @@ export function ListaDeSolicitacoes({
         <div className="table-wrapper">
           <div className="table-scroll">
             <table className="art-table tabela-centralizada">
-              {/* Previsto e Real numa coluna só, uma linha embaixo da outra:
+              {/* ── NOVE COLUNAS, E O RESTO NO OLHO ──
+                  Saíram Tipo, Período, Curso e SST. Não por caberem mal: por
+                  não serem o que se pergunta a uma LISTA. Aqui a pergunta é
+                  "qual pedido é este e como ele está", e para isso bastam
+                  código, quem pediu, de que projeto, de que escopo, para
+                  onde, com quantos, quanto e em que estado.
+                  Tipo, período, curso, SST e todo o resto — equipe nominal,
+                  veículo, hospedagem, equipamento, assinaturas, histórico —
+                  estão INTEIROS no popup do olho, que é onde se vai quando a
+                  pergunta passa a ser sobre um pedido só.
+
+                  Previsto e Real numa coluna só, uma linha embaixo da outra:
                   eles se leem SEMPRE juntos ("quanto era × quanto foi"), e
                   separados gastavam duas larguras de dinheiro para dizer uma
-                  comparação — largura que a tabela não tem de sobra. */}
+                  comparação. */}
               <thead>
                 <tr>
                   <th className="cel-texto">Código</th>
-                  <th className="cel-texto">Tipo</th>
                   <th className="cel-texto">Solicitante</th>
                   <th className="cel-texto">Cliente | Projeto</th>
                   {/* O PROGRAMA do campo — é por ele que se separa o campo de
                       fauna do de ruído dentro do mesmo contrato. */}
                   <th className="cel-texto">Escopo</th>
                   <th className="cel-texto">Destino</th>
-                  <th className="cel-texto">Período</th>
                   <th className="cel-texto">Equipe</th>
-                  {verValores ? (
-                    <>
-                      <th className="cel-num">Previsto × Real</th>
-                      <th>Curso</th>
-                    </>
-                  ) : null}
-                  <th>SST</th>
+                  {verValores ? <th className="cel-num">Previsto × Real</th> : null}
                   <th>Status</th>
                   <th className="col-acoes">Ações</th>
                 </tr>
@@ -288,32 +290,18 @@ export function ListaDeSolicitacoes({
                 {daPagina.map((s) => (
                   <tr key={s.id}>
                     <td className="cel-texto cel-inteiro">{s.codigo}</td>
-                    <td className="cel-texto">{s.tipo}</td>
                     <td className="cel-texto">{s.solicitante_nome || "—"}</td>
                     <td className="cel-texto">{s.cliente_projeto || "—"}</td>
                     <td className="cel-texto">{s.escopo || "—"}</td>
                     <td className="cel-texto">{s.destino || "—"}</td>
-                    <td className="cel-texto">{periodoTexto(s)}</td>
                     <td className="cel-texto">{equipeResumo(s)}</td>
                     {verValores ? (
-                      <>
-                        <td className="cel-num">
-                          {formatarMoeda(s.previsto_total)}
-                          <br />
-                          {formatarMoeda(s.real_total)}
-                        </td>
-                        <td>
-                          <Selo texto={cursoCurto(s)} classe={classeDoCurso(s.status_curso)} />
-                        </td>
-                      </>
+                      <td className="cel-num">
+                        {formatarMoeda(s.previsto_total)}
+                        <br />
+                        {formatarMoeda(s.real_total)}
+                      </td>
                     ) : null}
-                    <td>
-                      {/* SST é UMA MARCA desde a v3: se aplica ou não. */}
-                      <Selo
-                        texto={s.sst_aplicavel ? "Se aplica" : "Não se aplica"}
-                        classe={s.sst_aplicavel ? "st-ok" : "st-neutro"}
-                      />
-                    </td>
                     <td>
                       <Selo texto={s.status} classe={classeDoStatus(s.status)} />
                     </td>

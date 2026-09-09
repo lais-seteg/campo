@@ -18,6 +18,7 @@ import { CampoMascarado, Caixa, Grupo } from "@/app/components/Campos";
 import { BotaoExportarCsv, Selo, TabelaVazia } from "@/app/components/Tabela";
 import { Icone } from "@/app/components/Icone";
 import { ErroDaApi, mensagemDoErro, patch, post, remover } from "@/app/components/api";
+import { HotelEmPopup } from "@/app/(sistema)/cadastros/InformacoesEmPopup";
 import { UFS, UF_PADRAO } from "@/lib/listas";
 import { csvNumero, formatarMoeda, formatarNumeroBR, parseMoeda } from "@/lib/formato";
 import { TIPOS_HOTEL, type Hotel, type TipoHotel } from "@/lib/tipos";
@@ -281,6 +282,11 @@ export function ListaDeHoteis({ hoteis, usosPorHotel, podeExcluir, v2Ativa, abas
                     <Selo texto={h.ativo ? "Ativo" : "Inativo"} classe={h.ativo ? "st-ok" : "st-neutro"} />
                   </td>
                   <td className="table-actions">
+                    {/* Ler vem antes de mexer, e não depende de permissão:
+                        endereço, WhatsApp, e-mail, estacionamento e
+                        observação não estão na tabela e só existiam dentro
+                        do formulário de edição. */}
+                    <HotelEmPopup hotel={h} usos={usosPorHotel[h.id] ?? 0} />
                     <button
                       className="btn-icon"
                       type="button"

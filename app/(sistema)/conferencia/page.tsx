@@ -18,7 +18,7 @@
 import { exigirSessao } from "@/lib/sessao";
 import { carregarDados } from "@/lib/dados";
 import { CabecalhoDeSecao } from "@/app/components/Tabela";
-import { TabelaDeFila } from "@/app/components/TabelaDeFila";
+import { TabelaDeFila, type ColunaDeFila } from "@/app/components/TabelaDeFila";
 import { DetalheEmPopup } from "@/app/(sistema)/solicitacoes/[id]/DetalheEmPopup";
 import { RegistrarConferencia } from "@/app/(sistema)/conferencia/RegistrarConferencia";
 import { ChecklistEmPopup } from "@/app/(sistema)/solicitacoes/[id]/checklist/ChecklistEmPopup";
@@ -26,6 +26,26 @@ import { solicitacoesParaConferencia } from "@/lib/consultas";
 import { podeVerValores } from "@/lib/papeis";
 
 export const dynamic = "force-dynamic";
+
+// AQUI a coluna de Status é a mais importante: a fila mistura "Aprovada",
+// "Logística confirmada" e "Em campo", e é ela que diz se o pedido está
+// SAINDO (registrar entrega) ou VOLTANDO (registrar devolução). Nas outras
+// duas filas o status é constante e a coluna não diria nada.
+//
+// Sem Período: no balcão a pergunta é sobre HOJE — quem chegou para buscar
+// e quem voltou. As datas do campo estão no olho e no checklist.
+//
+// Sem Previsto × Real: esta fila abre para todo usuário ativo, e entregar
+// material não tem a ver com autorizar gasto.
+const COLUNAS: readonly ColunaDeFila[] = [
+  "codigo",
+  "cliente",
+  "escopo",
+  "solicitante",
+  "destino",
+  "equipe",
+  "status",
+];
 
 export default async function PaginaDeConferencia() {
   const usuario = await exigirSessao();
@@ -37,14 +57,10 @@ export default async function PaginaDeConferencia() {
     <section className="secao active">
       <CabecalhoDeSecao titulo="Conferência de equipamentos" direita="Entrega e devolução do que sai para campo" />
 
-      {/* AQUI a coluna de Status entra: a fila mistura "Aprovada",
-          "Logística confirmada" e "Em campo", e é justamente ela que diz se
-          o pedido está SAINDO (registrar entrega) ou VOLTANDO (registrar
-          devolução). Nas outras duas filas o status é constante. */}
       <TabelaDeFila
         fila={fila}
+        colunas={COLUNAS}
         verValores={podeVerValores(usuario, dados.projetos)}
-        mostrarStatus
         acoes={(s) => (
           <>
             {/* As informações abrem em POPUP sobre a fila — o mesmo

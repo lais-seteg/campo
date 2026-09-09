@@ -10,10 +10,9 @@ import { useMemo, useState } from "react";
 import { Modal } from "@/app/components/Modal";
 import { useAvisos } from "@/app/components/Avisos";
 import { CampoMascarado } from "@/app/components/Campos";
-import { BotaoExportarCsv, CabecalhoDeSecao, Selo, TabelaVazia } from "@/app/components/Tabela";
+import { BotaoExportarCsv, CabecalhoDeSecao, TabelaVazia } from "@/app/components/Tabela";
 import { Icone } from "@/app/components/Icone";
 import { mensagemDoErro, patch } from "@/app/components/api";
-import { classeDaAvaria } from "@/lib/listas";
 import { csvNumero, formatarData, formatarMoeda, formatarNumeroBR, parseMoeda } from "@/lib/formato";
 import {
   GRAVIDADES_AVARIA,
@@ -219,6 +218,19 @@ export function RelatorioDeAvarias({
         <div className="table-wrapper">
           <div className="table-scroll">
             <table className="art-table tabela-centralizada">
+              {/* ── UM CUSTO, NÃO DOIS ──
+                  Eram duas colunas, "Estimado" e "Real", e em toda linha uma
+                  das duas estava vazia: enquanto a avaria não fecha só existe
+                  a estimativa, e quando fecha é o real que vale. Duas larguras
+                  de dinheiro para mostrar um número.
+                  Agora é uma: o custo REAL quando já foi lançado, a
+                  estimativa enquanto não foi — e aí a segunda linha diz
+                  "estimado", porque um número provisório sem aviso vira
+                  número definitivo na cabeça de quem lê. Os dois totais
+                  continuam separados nos cartões acima.
+
+                  A SITUAÇÃO saiu da tabela: está no filtro, que é como se
+                  procura por ela, e no lápis, que é onde se muda. */}
               <thead>
                 <tr>
                   <th>Aberta em</th>
@@ -226,28 +238,31 @@ export function RelatorioDeAvarias({
                   <th>Projeto</th>
                   <th>Equipamento</th>
                   <th>Gravidade</th>
-                  <th>Descrição</th>
+                  <th className="cel-texto">Descrição</th>
                   <th>Providência</th>
-                  <th>Estimado</th>
-                  <th>Real</th>
-                  <th>Situação</th>
+                  <th className="cel-num">Custo da avaria</th>
                   <th className="col-acoes">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {filtradas.map((a) => (
                   <tr key={a.id}>
-                    <td>{formatarData(a.aberto_em)}</td>
-                    <td>{a.solicitacao_codigo}</td>
+                    <td className="cel-inteiro">{formatarData(a.aberto_em)}</td>
+                    <td className="cel-inteiro">{a.solicitacao_codigo}</td>
                     <td>{a.projeto}</td>
                     <td>{a.equipamento}</td>
                     <td>{a.gravidade}</td>
-                    <td>{a.descricao}</td>
+                    <td className="cel-texto">{a.descricao}</td>
                     <td>{a.providencia}</td>
-                    <td>{formatarMoeda(a.custo_estimado)}</td>
-                    <td>{a.custo_real == null ? "—" : formatarMoeda(a.custo_real)}</td>
-                    <td>
-                      <Selo texto={a.situacao} classe={classeDaAvaria(a.situacao)} />
+                    <td className="cel-num">
+                      {a.custo_real == null ? (
+                        <>
+                          {formatarMoeda(a.custo_estimado)}
+                          <div className="tabela-sub">estimado</div>
+                        </>
+                      ) : (
+                        formatarMoeda(a.custo_real)
+                      )}
                     </td>
                     <td className="table-actions">
                       <button className="btn-icon" type="button" title="Editar avaria" onClick={() => abrir(a)}>

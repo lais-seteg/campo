@@ -154,18 +154,12 @@ export function resumoBlocos(s: SolicitacaoDeLista): string {
   return partes.join(" · ") || "Sem itens";
 }
 
-/**
- * Rótulo curto do status de curso para a tabela — a coluna é estreita e
- * "Abaixo do previsto" não cabe. O percentual é o que se olha de fato.
- */
-export function cursoCurto(s: Pick<Solicitacao, "status_curso" | "desvio_percentual">): string {
-  const curso = s.status_curso || "Sem realizado";
-  if (curso === "Sem previsto") return "s/ previsto";
-  if (curso === "Sem realizado") return "s/ real";
-  const pct = Number(s.desvio_percentual);
-  if (!Number.isFinite(pct)) return curso;
-  return `${pct > 0 ? "+" : ""}${pct.toFixed(1)}%`;
-}
+// `cursoCurto()` morava aqui: o rótulo abreviado do status de curso
+// ("+12,4%", "s/ previsto") para a coluna estreita de Curso. A coluna saiu
+// das tabelas — o curso do gasto não é o que se pergunta a uma lista — e o
+// popup do olho mostra a coisa inteira: o status por extenso, o previsto, o
+// real e o desvio em reais (`desvioTexto`). A abreviação não servia mais a
+// ninguém.
 
 /** Desvio em dinheiro e em percentual, com sinal — é o que diz se o campo
  *  custou mais ou menos, e quanto. */

@@ -16,13 +16,31 @@
 import { exigirSessao } from "@/lib/sessao";
 import { carregarDados } from "@/lib/dados";
 import { CabecalhoDeSecao } from "@/app/components/Tabela";
-import { TabelaDeFila } from "@/app/components/TabelaDeFila";
+import { TabelaDeFila, type ColunaDeFila } from "@/app/components/TabelaDeFila";
 import { DetalheEmPopup } from "@/app/(sistema)/solicitacoes/[id]/DetalheEmPopup";
 import { DecisaoDoLider } from "@/app/(sistema)/aprovacoes/DecisaoDoLider";
 import { solicitacoesParaAprovar } from "@/lib/consultas";
 import { ehDirecao, ehLider, podeVerValores } from "@/lib/papeis";
 
 export const dynamic = "force-dynamic";
+
+// O líder decide se AUTORIZA o campo. Para isso ele precisa de quem pede,
+// para onde, para quando, com quem, quanto custa e se tem SST — e é
+// exatamente esta lista.
+//
+// Sem Status: aqui todo pedido está "Aguardando aprovação" por definição da
+// fila, e a coluna seria a mesma palavra repetida em todas as linhas.
+const COLUNAS: readonly ColunaDeFila[] = [
+  "codigo",
+  "cliente",
+  "escopo",
+  "solicitante",
+  "destino",
+  "periodo",
+  "equipe",
+  "valores",
+  "sst",
+];
 
 export default async function PaginaDeAprovacoes() {
   const usuario = await exigirSessao();
@@ -48,10 +66,9 @@ export default async function PaginaDeAprovacoes() {
         }
       />
 
-      {/* Sem coluna de Status: aqui todo pedido está "Aguardando aprovação"
-          por definição da fila — a coluna seria a mesma palavra repetida. */}
       <TabelaDeFila
         fila={fila}
+        colunas={COLUNAS}
         verValores={podeVerValores(usuario, dados.projetos)}
         acoes={(s) => (
           <>

@@ -19,6 +19,7 @@ import { CampoMascarado } from "@/app/components/Campos";
 import { Selo, TabelaVazia } from "@/app/components/Tabela";
 import { Icone } from "@/app/components/Icone";
 import { mensagemDoErro, patch } from "@/app/components/api";
+import { DiariaEmPopup } from "@/app/(sistema)/cadastros/InformacoesEmPopup";
 import { formatarMoeda, formatarNumeroBR, parseMoeda } from "@/lib/formato";
 import type { DiariaValor } from "@/lib/tipos";
 
@@ -99,13 +100,17 @@ export function ListaDeDiarias({ diarias, podeEditar, v2Ativa, abas }: Props) {
                   </td>
                   <td>{formatarMoeda(d.valor)}</td>
                   <td className="table-actions">
+                    {/* O olho é de todos; o lápis é da Gestão. Antes, quem
+                        não altera via um travessão na coluna de ações — uma
+                        linha inteira sem nada para fazer. Agora tem o que
+                        a tabela não mostra: a situação e DE QUANDO é este
+                        valor, que é parte de saber se ele ainda vale. */}
+                    <DiariaEmPopup diaria={d} />
                     {podeEditar ? (
                       <button className="btn-icon" type="button" title="Alterar valor" onClick={() => abrir(d)}>
                         <Icone nome="editar" />
                       </button>
-                    ) : (
-                      "—"
-                    )}
+                    ) : null}
                   </td>
                 </tr>
               ))}
