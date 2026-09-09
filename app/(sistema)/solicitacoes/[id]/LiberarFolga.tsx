@@ -65,6 +65,11 @@ export function LiberarFolga({ solicitacaoId, equipamentoId, equipamento, libera
 
   // Retirar a liberação não pede motivo: é voltar ao padrão do sistema, e o
   // padrão não precisa ser justificado. Conceder, sim.
+  //
+  // O rótulo é "Retirar" e não "Retirar liberação": o longo dobrava a largura
+  // da coluna de reserva, e o que ele explica cabe no `title`. Texto e não
+  // ícone porque desfazer uma liberação é decisão — um desenho sem nome ali
+  // seria clicado por engano.
   if (liberado) {
     return (
       <button
@@ -72,9 +77,9 @@ export function LiberarFolga({ solicitacaoId, equipamentoId, equipamento, libera
         type="button"
         disabled={ocupado}
         onClick={() => enviar(false)}
-        title="Voltar a exigir a folga de um dia antes e depois"
+        title="Retirar a liberação: volta a exigir a folga de um dia antes e depois"
       >
-        {ocupado ? "…" : "Retirar liberação"}
+        {ocupado ? "…" : "Retirar"}
       </button>
     );
   }

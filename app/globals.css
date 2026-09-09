@@ -414,11 +414,18 @@ button,input,select,textarea{font-family:inherit}
    categorias somam aquele total, quantas avarias somam aquele custo). */
 .tabela-sub{color:var(--text-muted);font-size:.68rem}
 
-/* Nas filas ainda há botão com TEXTO ("Aprovar", "Recusar", "Fechar"), ao
-   lado dos ícones. Eles podem quebrar em duas linhas quando a tela aperta —
-   gastar altura de uma linha é melhor que empurrar a tabela inteira para
-   fora da largura. A largura da coluna sai do conteúdo, como nas demais. */
-td.table-actions.acoes-fila{flex-wrap:wrap;justify-content:center;gap:.25rem}
+/* ── OS BOTÕES DE AÇÃO FICAM NUMA LINHA ──
+   Eles podiam quebrar em duas (`flex-wrap:wrap`) porque os gatilhos eram
+   botões com TEXTO — "Confirmar logística", "Registrar entrega" — largos
+   demais para caber ao lado dos ícones. Agora todos são ícone de 27px, e a
+   quebra só faria a fileira ficar torta: uma linha com dois botões lado a
+   lado, a de baixo com um embaixo do outro.
+
+   `nowrap` e centrado: em toda linha da tabela os botões ocupam a mesma
+   altura e começam na mesma posição. Onde ainda há botão com texto — o
+   Aprovar/Recusar do líder, que é decisão e não pode virar desenho sem
+   nome — a coluna acomoda os dois na horizontal. */
+td.table-actions.acoes-fila{flex-wrap:nowrap;justify-content:center;gap:.3rem}
 .btn-icon{width:27px;height:27px;padding:0;border-radius:var(--radius-sm);font-size:.82rem;display:flex;align-items:center;justify-content:center;border:1px solid rgba(63,111,217,.28);background:rgba(63,111,217,.08);color:var(--blue-light-text);cursor:pointer;transition:all .2s ease}
 .btn-icon:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
 .btn-icon-danger{color:var(--red-text)!important;border-color:rgba(239,68,68,.3)!important;background:rgba(239,68,68,.08)!important}

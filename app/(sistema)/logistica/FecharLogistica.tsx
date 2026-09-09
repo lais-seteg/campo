@@ -19,6 +19,7 @@ import { Modal } from "@/app/components/Modal";
 import { useAvisos } from "@/app/components/Avisos";
 import { CampoMascarado } from "@/app/components/Campos";
 import { Selo } from "@/app/components/Tabela";
+import { Icone } from "@/app/components/Icone";
 import { mensagemDoErro, post } from "@/app/components/api";
 import { formatarMoeda, formatarNumeroBR, parseMoeda } from "@/lib/formato";
 import { LOCADORAS, type Hotel, type Item, type Locadora, type SolicitacaoDeLista } from "@/lib/tipos";
@@ -114,8 +115,20 @@ export function FecharLogistica({
 
   return (
     <>
-      <button className="btn btn-green btn-sm" type="button" onClick={() => setAberto(true)}>
-        Confirmar logística
+      {/* ÍCONE, nunca texto. Numa coluna de ações ao lado de botões de 27px,
+          um "Confirmar logística" escrito é quatro vezes mais largo que os
+          vizinhos: ele empurrava a coluna e desalinhava a fileira inteira. O
+          nome da ação não desaparece — vai para o `title` e o `aria-label`,
+          o mesmo tratamento do registrar entrega e das abas do menu em tela
+          estreita. */}
+      <button
+        className="btn-icon"
+        type="button"
+        title="Confirmar logística"
+        aria-label="Confirmar logística"
+        onClick={() => setAberto(true)}
+      >
+        <Icone nome="logistica" />
       </button>
 
       <Modal
