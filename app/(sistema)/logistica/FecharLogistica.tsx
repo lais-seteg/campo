@@ -115,20 +115,28 @@ export function FecharLogistica({
 
   return (
     <>
-      {/* ÍCONE, nunca texto. Numa coluna de ações ao lado de botões de 27px,
-          um "Confirmar logística" escrito é quatro vezes mais largo que os
-          vizinhos: ele empurrava a coluna e desalinhava a fileira inteira. O
-          nome da ação não desaparece — vai para o `title` e o `aria-label`,
-          o mesmo tratamento do registrar entrega e das abas do menu em tela
-          estreita. */}
+      {/* ── UMA SETA, EM VERDE ──
+          Ícone e nunca texto: numa coluna de ações ao lado de botões de
+          27px, um "Confirmar logística" escrito é quatro vezes mais largo
+          que os vizinhos e desalinhava a fileira inteira. O nome não
+          desaparece — vai para o `title` e o `aria-label`.
+
+          A SETA e não o ícone de logística (a caixa) porque o desenho tem de
+          dizer o VERBO, não o assunto: a coluna já está na aba Logística, e
+          repetir o assunto no botão não informa nada. Seta para a frente é o
+          gesto de confirmar e empurrar o pedido para o estado seguinte —
+          "Aprovada" vira "Logística confirmada".
+
+          Verde porque é a cor de confirmação no resto do sistema
+          (`btn-icon-green`), a mesma dos botões de confirmar dos modais. */}
       <button
-        className="btn-icon"
+        className="btn-icon btn-icon-green"
         type="button"
         title="Confirmar logística"
         aria-label="Confirmar logística"
         onClick={() => setAberto(true)}
       >
-        <Icone nome="logistica" />
+        <Icone nome="seta" />
       </button>
 
       <Modal
