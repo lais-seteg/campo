@@ -26,7 +26,7 @@ import type { ReactNode } from "react";
 import { Selo, TabelaVazia } from "@/app/components/Tabela";
 import { classeDoCurso, classeDoSst, classeDoStatus } from "@/lib/listas";
 import { formatarMoeda } from "@/lib/formato";
-import { cursoCurto, equipeResumo, periodoTexto, resumoBlocos } from "@/lib/consultas";
+import { cursoCurto, equipeResumo, periodoTexto } from "@/lib/consultas";
 import type { SolicitacaoDeLista } from "@/lib/tipos";
 
 interface Props {
@@ -54,23 +54,34 @@ export function TabelaDeFila({ fila, verValores, mostrarStatus = false, acoes, v
       <div className="table-wrapper">
         <div className="table-scroll">
           <table className="art-table tabela-centralizada">
+            {/* ── AS COLUNAS CABEM NA TELA ──
+                Saiu a coluna "Contém" (o resumo do que o pedido tem dentro:
+                equipe, veículo, hospedagem, equipamento). Era texto corrido
+                de largura imprevisível — "3 na equipe · Veículo (Movida) ·
+                Hospedagem em 2 cidade(s) · 4 equipamento(s)" — e sozinha
+                empurrava a tabela para fora da tela. A informação não se
+                perdeu: está inteira no popup do olho, que é onde se vai
+                quando se quer o detalhe.
+
+                Previsto e Real também deixaram de ser duas colunas e viraram
+                uma: eles se leem SEMPRE juntos ("quanto era × quanto foi"),
+                e separados gastavam duas larguras de dinheiro para dizer uma
+                comparação. */}
             <thead>
               <tr>
-                <th>Código</th>
-                <th>Cliente | Projeto</th>
+                <th className="cel-texto">Código</th>
+                <th className="cel-texto">Cliente | Projeto</th>
                 {/* O PROGRAMA do campo: numa fila de um contrato com quatro
                     programas, é o que separa o campo de fauna do de ruído. */}
-                <th>Escopo</th>
-                <th>Tipo</th>
-                <th>Solicitante</th>
-                <th>Destino</th>
-                <th>Período</th>
-                <th>Equipe</th>
-                <th>Contém</th>
+                <th className="cel-texto">Escopo</th>
+                <th className="cel-texto">Tipo</th>
+                <th className="cel-texto">Solicitante</th>
+                <th className="cel-texto">Destino</th>
+                <th className="cel-texto">Período</th>
+                <th className="cel-texto">Equipe</th>
                 {verValores ? (
                   <>
-                    <th>Previsto</th>
-                    <th>Real</th>
+                    <th className="cel-num">Previsto × Real</th>
                     <th>Curso</th>
                   </>
                 ) : null}
@@ -85,24 +96,21 @@ export function TabelaDeFila({ fila, verValores, mostrarStatus = false, acoes, v
             <tbody>
               {fila.map((s) => (
                 <tr key={s.id}>
-                  <td>{s.codigo}</td>
-                  <td>{s.cliente_projeto || "—"}</td>
-                  <td>{s.escopo || "—"}</td>
-                  <td>{s.tipo}</td>
-                  <td>{s.solicitante_nome || "—"}</td>
-                  <td>{s.destino || "—"}</td>
-                  <td>{periodoTexto(s)}</td>
-                  <td>{equipeResumo(s)}</td>
-                  {/* O que o pedido tem dentro (equipe, veículo, hospedagem,
-                      equipamento, despesa, diária). É a linha que o cartão
-                      trazia e que a logística usa para saber o que fechar —
-                      alinhada à esquerda porque é texto corrido, não dado
-                      de comparar. */}
-                  <td className="cel-contem">{resumoBlocos(s)}</td>
+                  <td className="cel-texto cel-inteiro">{s.codigo}</td>
+                  <td className="cel-texto">{s.cliente_projeto || "—"}</td>
+                  <td className="cel-texto">{s.escopo || "—"}</td>
+                  <td className="cel-texto">{s.tipo}</td>
+                  <td className="cel-texto">{s.solicitante_nome || "—"}</td>
+                  <td className="cel-texto">{s.destino || "—"}</td>
+                  <td className="cel-texto cel-inteiro">{periodoTexto(s)}</td>
+                  <td className="cel-texto">{equipeResumo(s)}</td>
                   {verValores ? (
                     <>
-                      <td>{formatarMoeda(s.previsto_total)}</td>
-                      <td>{formatarMoeda(s.real_total)}</td>
+                      <td className="cel-num">
+                        {formatarMoeda(s.previsto_total)}
+                        <br />
+                        {formatarMoeda(s.real_total)}
+                      </td>
                       <td>
                         <Selo texto={cursoCurto(s)} classe={classeDoCurso(s.status_curso)} />
                       </td>

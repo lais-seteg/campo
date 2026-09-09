@@ -109,7 +109,9 @@ export interface LinhaDeEpi {
  *  é quem tem as máscaras. */
 export interface CorpoDeSolicitacao {
   tipo: TipoSolicitacao;
-  setor: string;
+  /** HERANÇA: o campo saiu do formulário, e a coluna aceita nulo. Continua
+   *  aqui para a edição de pedido antigo não apagar o que ele gravou. */
+  setor: string | null;
   projeto_id: string;
   data_recurso: string | null;
   cliente_projeto: string;
@@ -198,8 +200,12 @@ export function validarSolicitacao(
   const tipo = daLista(c.tipo, TIPOS_SOLICITACAO);
   if (!tipo) return erro("Escolha o tipo de recurso: Administrativo ou Financeiro.");
 
+  // O SETOR saiu do formulário (ver supabase/16) e deixou de ser exigido: o
+  // solicitante já se identifica, e o setor dele não define quem aprova
+  // (isso é o projeto) nem o rateio (isso é o escopo). Continua sendo aceito
+  // para não apagar o que os pedidos antigos gravaram quando alguém os
+  // edita.
   const setor = texto(c.setor);
-  if (!setor) return erro("Informe o setor.");
 
   // ── O PROJETO É O QUE DIZ QUEM APROVA ──
   // Sem projeto não há líder, e sem líder não há aprovação. É obrigatório

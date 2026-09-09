@@ -63,7 +63,6 @@ import {
   type EstadoDoFormulario,
 } from "@/app/(sistema)/solicitacoes/formulario/estado";
 
-const SETORES = ["Regulatório", "Administrativo", "Financeiro", "PMO", "Projetos", "Inovação"] as const;
 const MODALIDADES = ["Locação", "Frota própria", "Aéreo", "Rodoviário", "Aplicativo", "Outros"] as const;
 
 interface Props {
@@ -341,16 +340,15 @@ export function FormularioDeSolicitacao({
               {(id) => <input id={id} className="form-control" value={solicitanteNome} readOnly />}
             </Grupo>
 
-            <Grupo rotulo="Setor" obrigatorio>
-              {(id) => (
-                <select id={id} className="form-control" value={f.setor} onChange={(e) => mudar({ setor: e.target.value })}>
-                  <option value="">Selecione</option>
-                  {SETORES.map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-              )}
-            </Grupo>
+            {/* O SETOR saiu daqui: o solicitante já se identifica logo
+                acima, e o setor dele não muda a decisão de ninguém — não
+                define quem aprova (isso é o projeto), não entra no rateio
+                (isso é o escopo) e não aparece em nenhum relatório. Era um
+                campo obrigatório que só atrasava o pedido.
+
+                A coluna continua no banco com o que os pedidos antigos
+                gravaram (ver supabase/16): editar um deles preserva o setor
+                que ele tinha, em vez de apagá-lo por causa da tela. */}
 
             <Grupo rotulo="Data para receber o recurso" obrigatorio>
               {(id) => (

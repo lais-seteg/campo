@@ -257,22 +257,25 @@ export function ListaDeSolicitacoes({
         <div className="table-wrapper">
           <div className="table-scroll">
             <table className="art-table tabela-centralizada">
+              {/* Previsto e Real numa coluna só, uma linha embaixo da outra:
+                  eles se leem SEMPRE juntos ("quanto era × quanto foi"), e
+                  separados gastavam duas larguras de dinheiro para dizer uma
+                  comparação — largura que a tabela não tem de sobra. */}
               <thead>
                 <tr>
-                  <th>Código</th>
-                  <th>Tipo</th>
-                  <th>Solicitante</th>
-                  <th>Cliente | Projeto</th>
+                  <th className="cel-texto">Código</th>
+                  <th className="cel-texto">Tipo</th>
+                  <th className="cel-texto">Solicitante</th>
+                  <th className="cel-texto">Cliente | Projeto</th>
                   {/* O PROGRAMA do campo — é por ele que se separa o campo de
                       fauna do de ruído dentro do mesmo contrato. */}
-                  <th>Escopo</th>
-                  <th>Destino</th>
-                  <th>Período</th>
-                  <th>Equipe</th>
+                  <th className="cel-texto">Escopo</th>
+                  <th className="cel-texto">Destino</th>
+                  <th className="cel-texto">Período</th>
+                  <th className="cel-texto">Equipe</th>
                   {verValores ? (
                     <>
-                      <th>Previsto</th>
-                      <th>Real</th>
+                      <th className="cel-num">Previsto × Real</th>
                       <th>Curso</th>
                     </>
                   ) : null}
@@ -284,18 +287,21 @@ export function ListaDeSolicitacoes({
               <tbody>
                 {daPagina.map((s) => (
                   <tr key={s.id}>
-                    <td>{s.codigo}</td>
-                    <td>{s.tipo}</td>
-                    <td>{s.solicitante_nome || "—"}</td>
-                    <td>{s.cliente_projeto || "—"}</td>
-                    <td>{s.escopo || "—"}</td>
-                    <td>{s.destino || "—"}</td>
-                    <td>{periodoTexto(s)}</td>
-                    <td>{equipeResumo(s)}</td>
+                    <td className="cel-texto cel-inteiro">{s.codigo}</td>
+                    <td className="cel-texto">{s.tipo}</td>
+                    <td className="cel-texto">{s.solicitante_nome || "—"}</td>
+                    <td className="cel-texto">{s.cliente_projeto || "—"}</td>
+                    <td className="cel-texto">{s.escopo || "—"}</td>
+                    <td className="cel-texto">{s.destino || "—"}</td>
+                    <td className="cel-texto cel-inteiro">{periodoTexto(s)}</td>
+                    <td className="cel-texto">{equipeResumo(s)}</td>
                     {verValores ? (
                       <>
-                        <td>{formatarMoeda(s.previsto_total)}</td>
-                        <td>{formatarMoeda(s.real_total)}</td>
+                        <td className="cel-num">
+                          {formatarMoeda(s.previsto_total)}
+                          <br />
+                          {formatarMoeda(s.real_total)}
+                        </td>
                         <td>
                           <Selo texto={cursoCurto(s)} classe={classeDoCurso(s.status_curso)} />
                         </td>

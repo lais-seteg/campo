@@ -101,7 +101,10 @@ export function InformacoesDaSolicitacao({
       <Grade>
         <Info rotulo="Tipo">{s.tipo}</Info>
         <Info rotulo="Solicitante">{s.solicitante_nome || "—"}</Info>
-        <Info rotulo="Setor">{s.setor || "—"}</Info>
+        {/* O SETOR saiu da identificação (supabase/16). Só aparece em pedido
+            ANTIGO, que o gravou quando o campo existia — some sozinho nos
+            novos, em vez de ocupar a grade com um travessão. */}
+        {s.setor ? <Info rotulo="Setor">{s.setor}</Info> : null}
         <Info rotulo="Data da solicitação">{formatarData(s.criado_em)}</Info>
         <Info rotulo="Recurso até">{dataISOparaBR(s.data_recurso) || "—"}</Info>
         {/* O PROGRAMA deste campo — é ele que permite somar gasto por

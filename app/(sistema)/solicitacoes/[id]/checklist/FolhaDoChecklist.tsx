@@ -93,11 +93,14 @@ export function FolhaDoChecklist({
 
       <table className="chk-dados">
         <tbody>
+          {/* O SETOR saiu da identificação (supabase/16); o ESCOPO entrou no
+              lugar dele — e é mais útil na folha impressa: diz qual programa
+              do contrato este campo atende. */}
           <tr>
             <th>Solicitante</th>
             <td>{s.solicitante_nome || "—"}</td>
-            <th>Setor</th>
-            <td>{s.setor || "—"}</td>
+            <th>Escopo</th>
+            <td>{s.escopo || "—"}</td>
           </tr>
           <tr>
             <th>Destino</th>

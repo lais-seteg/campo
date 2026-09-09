@@ -327,8 +327,35 @@ button,input,select,textarea{font-family:inherit}
    — então ela NÃO acompanha o `thead` grudado no topo: rolava junto com o
    corpo e o cabeçalho ficava boiando sem separação sobre as linhas. Sombra
    interna é pintada na célula e fica onde a célula está. */
-.art-table th{padding:.6rem .7rem;text-align:left;font-weight:800;color:var(--text-secondary);text-transform:uppercase;font-size:.63rem;letter-spacing:.06em;box-shadow:inset 0 -1px 0 var(--border-color);white-space:nowrap}
-.art-table td{padding:.6rem .7rem;border-bottom:1px solid var(--border-color);color:var(--text-primary);vertical-align:middle}
+/* ── A TABELA CABE NA TELA; NÃO SE ROLA PARA O LADO ──
+   O cabeçalho era `white-space:nowrap`, e era ele o principal culpado: numa
+   tabela de treze colunas, "CÓDIGO CLOCKIFY" e "CLIENTE | PROJETO" em uma
+   linha só impunham uma largura mínima que somada estourava qualquer tela —
+   e o que sobrava era rolar para o lado, com metade da informação escondida
+   fora do campo de visão. Coluna que se precisa rolar para ver é coluna que
+   não está na tela.
+
+   Agora o rótulo QUEBRA em duas linhas. Custa uma faixa de cabeçalho um
+   pouco mais alta — uma vez, no topo — e devolve a largura de todas as
+   linhas de dado. `hyphens:auto` para a quebra cair em sílaba e não no meio
+   da palavra.
+
+   `vertical-align:top` no corpo pelo mesmo motivo do subgrid da grade de
+   informação: com células que agora podem quebrar em duas linhas, o
+   alinhamento pelo meio faria cada valor começar numa altura diferente. */
+.art-table th{
+  padding:.5rem .55rem;text-align:left;font-weight:800;color:var(--text-secondary);
+  text-transform:uppercase;font-size:.63rem;letter-spacing:.04em;
+  box-shadow:inset 0 -1px 0 var(--border-color);
+  white-space:normal;hyphens:auto;vertical-align:bottom;line-height:1.2
+}
+.art-table td{
+  padding:.5rem .55rem;border-bottom:1px solid var(--border-color);
+  color:var(--text-primary);vertical-align:top
+}
+/* Célula que NÃO deve quebrar: data, dinheiro e período perdem o sentido
+   partidos ao meio ("31/12/" numa linha, "2026" na outra). */
+.art-table .cel-num,.art-table .cel-inteiro{white-space:nowrap}
 .art-table tbody tr:last-child td{border-bottom:none}
 .art-table tbody tr:hover{background:var(--bg-card-hover)}
 /* ── A COLUNA DE AÇÕES CABE NO QUE TEM DENTRO ──
@@ -345,21 +372,48 @@ button,input,select,textarea{font-family:inherit}
 .col-acoes,.col-acoes-lg,.col-acoes-fila{width:1%;white-space:nowrap;text-align:center}
 .table-actions{display:flex;gap:.3rem;justify-content:center;flex-wrap:nowrap}
 .table-actions>*{flex-shrink:0}
+/* ── A CONVENÇÃO DE ALINHAMENTO DAS TABELAS ──
+   `tabela-centralizada` centralizava TUDO, e é isso que desalinhava: texto
+   de tamanhos diferentes centralizado tem as duas bordas irregulares, e
+   dinheiro centralizado não põe `R$ 1.200,00` embaixo de `R$ 90,00` — a
+   vírgula cai em lugar diferente em cada linha, que é o que impede somar de
+   olho.
+
+   A convenção agora é a de qualquer tabela de dado:
+
+     TEXTO   → esquerda. É onde a leitura começa, e é o que faz a coluna ter
+               uma borda reta para o olho descer.
+     NÚMERO  → direita, com `tabular-nums`. À direita as ordens de grandeza
+               se empilham (unidade sob unidade, milhar sob milhar); com
+               dígitos de largura fixa, elas se empilham de verdade — sem
+               isso o "1" estreito desalinha a coluna inteira.
+     SELO    → centro. Uma pastilha é um símbolo, não texto corrido: centrada
+               ela fica sob o rótulo da coluna.
+
+   `tabela-centralizada` continua existindo e continua sendo o padrão de
+   CENTRO, porque metade das colunas do sistema é selo ou marca de
+   conferência. O que muda é que agora há como dizer o contrário, coluna por
+   coluna, com `.cel-texto` e `.cel-num`. */
 .tabela-centralizada th,.tabela-centralizada td{text-align:center}
+
+/* Vale dentro e fora de `tabela-centralizada` — a especificidade de duas
+   classes vence a de uma. */
+.art-table th.cel-texto,.art-table td.cel-texto{text-align:left}
+.art-table th.cel-num,.art-table td.cel-num{
+  text-align:right;
+  /* Dígitos de largura igual: é isto que faz a coluna de dinheiro empilhar.
+     Sem tabular-nums, "111" e "999" têm larguras diferentes na fonte do
+     sistema e a vírgula sai do lugar. */
+  font-variant-numeric:tabular-nums
+}
+/* O cabeçalho da coluna acompanha o corpo dela: rótulo à direita sobre
+   número à direita. Cabeçalho centralizado sobre número à direita é o
+   desalinhamento mais visível de todos. */
+.art-table thead th.cel-num{text-align:right}
 /* A segunda linha de uma célula: a composição por trás do número (quantas
    categorias somam aquele total, quantas avarias somam aquele custo). */
 .tabela-sub{color:var(--text-muted);font-size:.68rem}
 
-/* ── AS TRÊS FILAS (Aprovações, Logística, Conferência) ──
-   A coluna "Contém" é TEXTO CORRIDO — "3 na equipe · Veículo (Movida) ·
-   Hospedagem em 2 cidade(s)" —, e não dado de comparar coluna abaixo:
-   alinha à esquerda mesmo dentro de `.tabela-centralizada` e quebra
-   linha. O teto de largura é o que impede a frase de empurrar as colunas
-   seguintes para fora da tela. */
-.tabela-centralizada td.cel-contem{
-  text-align:left;max-width:22rem;white-space:normal;
-  font-size:.72rem;color:var(--text-secondary)
-}
 /* Nas filas ainda há botão com TEXTO ("Aprovar", "Recusar", "Fechar"), ao
    lado dos ícones. Eles podem quebrar em duas linhas quando a tela aperta —
    gastar altura de uma linha é melhor que empurrar a tabela inteira para

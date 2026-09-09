@@ -222,20 +222,20 @@ export default async function PaginaDePainel() {
               <table className="art-table tabela-centralizada">
                 <thead>
                   <tr>
-                    <th>Projeto</th>
-                    <th>Líder</th>
+                    <th className="cel-texto">Projeto</th>
+                    <th className="cel-texto">Líder</th>
                     <th>Situação</th>
-                    <th>Campos</th>
-                    <th>Gasto previsto</th>
-                    <th>Real dos campos</th>
-                    <th>Sendo avaria</th>
+                    <th className="cel-num">Campos</th>
+                    <th className="cel-num">Gasto previsto</th>
+                    <th className="cel-num">Real dos campos</th>
+                    <th className="cel-num">Sendo avaria</th>
                     <th>Saldo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {linhasPorProjeto.map((l) => (
                     <tr key={l.projeto.id}>
-                      <td>
+                      <td className="cel-texto">
                         {l.projeto.cliente} | {l.projeto.nome}
                       </td>
                       {/* O líder virou COLUNA (antes era uma sublinha sob o
@@ -245,14 +245,14 @@ export default async function PaginaDePainel() {
                           marcado — é o que trava o campo dele para sempre,
                           porque o pedido nasceria esperando decisão de
                           ninguém. */}
-                      <td>
+                      <td className="cel-texto">
                         {l.projeto.lider ?? <Selo texto="Sem líder" classe="st-ruim" />}
                       </td>
                       <td>{l.projeto.situacao}</td>
-                      <td>{l.campos}</td>
-                      <td>{l.previsto > 0 ? formatarMoeda(l.previsto) : "—"}</td>
-                      <td>{formatarMoeda(l.real)}</td>
-                      <td>{l.avaria > 0 ? formatarMoeda(l.avaria) : "—"}</td>
+                      <td className="cel-num">{l.campos}</td>
+                      <td className="cel-num">{l.previsto > 0 ? formatarMoeda(l.previsto) : "—"}</td>
+                      <td className="cel-num">{formatarMoeda(l.real)}</td>
+                      <td className="cel-num">{l.avaria > 0 ? formatarMoeda(l.avaria) : "—"}</td>
                       <td>
                         {/* Sem gasto previsto cadastrado não há saldo a
                             mostrar — mostrar "−R$ 3.000" contra um previsto
@@ -300,11 +300,11 @@ export default async function PaginaDePainel() {
               <table className="art-table tabela-centralizada">
                 <thead>
                   <tr>
-                    <th>Escopo</th>
-                    <th>Campos</th>
-                    <th>Previsto</th>
-                    <th>Real</th>
-                    <th>Sendo avaria</th>
+                    <th className="cel-texto">Escopo</th>
+                    <th className="cel-num">Campos</th>
+                    <th className="cel-num">Previsto</th>
+                    <th className="cel-num">Real</th>
+                    <th className="cel-num">Sendo avaria</th>
                     <th>Desvio</th>
                   </tr>
                 </thead>
@@ -313,11 +313,11 @@ export default async function PaginaDePainel() {
                     const desvio = e.real - e.previsto;
                     return (
                       <tr key={e.escopo}>
-                        <td>{e.escopo}</td>
-                        <td>{e.campos}</td>
-                        <td>{formatarMoeda(e.previsto)}</td>
-                        <td>{formatarMoeda(e.real)}</td>
-                        <td>{e.avaria > 0 ? formatarMoeda(e.avaria) : "—"}</td>
+                        <td className="cel-texto">{e.escopo}</td>
+                        <td className="cel-num">{e.campos}</td>
+                        <td className="cel-num">{formatarMoeda(e.previsto)}</td>
+                        <td className="cel-num">{formatarMoeda(e.real)}</td>
+                        <td className="cel-num">{e.avaria > 0 ? formatarMoeda(e.avaria) : "—"}</td>
                         <td>
                           {/* Sem previsto informado não há desvio a mostrar:
                               "+R$ 800" contra um previsto de zero acusaria

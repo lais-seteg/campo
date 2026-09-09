@@ -292,7 +292,9 @@ export function formularioDeSolicitacao(s: SolicitacaoDeLista): EstadoDoFormular
   return {
     ...formularioVazio(),
     tipo: s.tipo,
-    setor: s.setor,
+    // Preserva o setor que o pedido ANTIGO gravou: o campo saiu da tela
+    // (supabase/16), mas editar um pedido não pode apagar o que ele tinha.
+    setor: s.setor ?? "",
     projetoId: s.projeto_id ?? "",
     dataRecurso: dataISOparaBR(s.data_recurso),
     clienteProjeto: s.cliente_projeto,
@@ -411,7 +413,7 @@ export function montarCorpo(f: EstadoDoFormulario): Record<string, unknown> {
 
   return {
     tipo: f.tipo,
-    setor: f.setor,
+    setor: f.setor.trim() || null,
     projeto_id: f.projetoId,
     data_recurso: dataBRparaISO(f.dataRecurso) || null,
     cliente_projeto: f.clienteProjeto,

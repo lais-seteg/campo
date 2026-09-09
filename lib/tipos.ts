@@ -574,7 +574,15 @@ export interface SolicitacaoCabecalho {
   tipo: TipoSolicitacao;
   solicitante_id: string | null;
   solicitante_nome: string;
-  setor: string;
+  /**
+   * HERANÇA. O campo saiu da Identificação do formulário (supabase/16): o
+   * solicitante já se identifica, e o setor dele não define quem aprova
+   * (isso é o projeto) nem o rateio (isso é o escopo).
+   *
+   * A coluna ficou, com o que os pedidos antigos gravaram — pedido novo
+   * chega nulo.
+   */
+  setor: string | null;
   data_recurso: string | null;
   projeto_id: string | null;
   cliente_projeto: string;
