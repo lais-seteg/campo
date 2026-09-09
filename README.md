@@ -385,6 +385,25 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 configuração a copiar à mão no que é publicado — era essa a ressalva do `env.js`, e ela deixou
 de existir.
 
+### A função roda em São Paulo, e isso não é detalhe
+
+`vercel.json` fixa `"regions": ["gru1"]`. É a linha mais importante do deploy, e o motivo é
+geografia: o projeto Supabase está em **`sa-east-1` (São Paulo)** e a equipe está no Ceará.
+
+No padrão do Vercel (`iad1`, Washington), cada navegação fazia o caminho
+
+```
+Ceará → São Paulo (borda) → WASHINGTON (função) → São Paulo (banco) → Washington → São Paulo → Ceará
+```
+
+e **cada** consulta do carregamento atravessava o Atlântico duas vezes. O `x-vercel-id` denunciava
+isso em toda resposta: `gru1::iad1::…` — recebido em São Paulo, executado em Washington. Da máquina
+de quem usa, o banco responde em ~26ms; era o código que estava longe dele, não o contrário.
+
+Se algum dia o projeto Supabase mudar de região, esta linha muda junto. Elas têm de andar
+emparelhadas: função longe do banco é o tipo de lentidão que nenhuma otimização de consulta
+compensa.
+
 ## Arquitetura e segurança
 
 Até a v2 isto era um site estático: `index.html` + `script.js`, com o navegador falando direto
