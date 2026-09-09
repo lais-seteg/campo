@@ -32,6 +32,7 @@ import type {
   Perfil,
   Projeto,
   ProjetoGastoPrevisto,
+  SituacaoDaAssinatura,
   Solicitacao,
   SolicitacaoDeLista,
   SolicitacaoAlteracao,
@@ -260,6 +261,32 @@ export const carregarFilhasDaSolicitacao = cache(
     return { assinaturas, alteracoes };
   }
 );
+
+/**
+ * Quem já assinou o quê nesta solicitação, e qual papel EU posso assinar.
+ *
+ * Vem do banco (`situacao_das_assinaturas`) e não de uma conta feita aqui,
+ * porque a segunda pergunta — "qual papel eu assino?" — depende de
+ * `eh_administrativo()` e de estar na equipe do campo, coisas que só o
+ * banco sabe responder sobre `auth.uid()`.
+ *
+ * Sem isso a tela mostraria o quadro de assinatura a quem não pode assinar:
+ * a pessoa desenharia o traço para ouvir 403 depois.
+ */
+export async function carregarSituacaoDasAssinaturas(
+  accessToken: string,
+  id: string
+): Promise<SituacaoDaAssinatura[]> {
+  const sb = clienteDoUsuario(accessToken);
+  const { data, error } = await sb.rpc("situacao_das_assinaturas", { p_solicitacao: id });
+  if (error) {
+    // Estrutura pendente ou permissão: a folha continua servindo para
+    // imprimir e assinar à mão, que é o que ela sempre foi.
+    console.error("[dados] falha ao carregar a situação das assinaturas", error);
+    return [];
+  }
+  return (data ?? []) as SituacaoDaAssinatura[];
+}
 
 /**
  * A avaria guarda o id do equipamento, não o nome. Resolver aqui, uma vez,

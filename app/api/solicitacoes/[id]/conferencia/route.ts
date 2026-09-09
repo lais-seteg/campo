@@ -16,31 +16,32 @@
 //  — e perder a conexão no meio deixava metade registrado. Aqui é tudo ou
 //  nada, e continua sendo: esta rota não replica a lógica, ela a chama.
 //
-//  ── A ORDEM: CONFERÊNCIA, DEPOIS ASSINATURA ──
+//  ── A ASSINATURA SAIU DAQUI ──
 //
-//  Se a conferência falhar, não pode ficar assinatura de um ato que não
-//  aconteceu. A assinatura ENTRA E NÃO SAI: reenvio bate na chave única do
-//  banco, e isso é o comportamento desejado — assinatura que se reescreve
-//  não prova nada.
+//  Esta rota já recebeu as duas assinaturas no mesmo corpo e as gravava
+//  depois de registrar. Não mais: cada pessoa assina no PRÓPRIO acesso, em
+//  `POST /api/solicitacoes/[id]/assinaturas` (ver supabase/14).
+//
+//  A ordem se inverteu, e é a ordem certa: assina-se ANTES, e o registro
+//  exige as duas assinaturas do momento já presentes — quem cobra isso é
+//  `exigir_assinaturas()` dentro da própria função que move o estoque, e
+//  não esta rota, porque a regra tem de valer para qualquer caminho que
+//  chegue ao banco.
+//
+//  Antes, as duas assinaturas eram desenhadas no mesmo aparelho, na mesma
+//  transação: provavam que alguém desenhou dois traços, não quem eram.
 // ═══════════════════════════════════════════════════════════════════════
 
 import { NextResponse, type NextRequest } from "next/server";
 import { autorizarApi } from "@/lib/sessao";
 import { clienteDoUsuario } from "@/lib/supabaseServidor";
 import { carregarSolicitacao } from "@/lib/dados";
-import { mensagemDeErro, statusDoErro, tabelaNaoExiste } from "@/lib/erros";
+import { mensagemDeErro, statusDoErro } from "@/lib/erros";
 import { podeRegistrarDevolucao, podeRegistrarEntrega } from "@/lib/papeis";
 import { GRAVIDADES_AVARIA, PROVIDENCIAS_AVARIA } from "@/lib/tipos";
-import type { GravidadeAvaria, MomentoAssinatura, ProvidenciaAvaria } from "@/lib/tipos";
+import type { GravidadeAvaria, ProvidenciaAvaria } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
-
-/** O mesmo limite que o banco impõe em `solicitacao_assinaturas.imagem`:
- *  400 KB de base64 é muito mais do que um traço de 600×200 precisa, e é o
- *  que impede a assinatura virar upload de foto. */
-const IMAGEM_MIN = 200;
-const IMAGEM_MAX = 400_000;
-const PREFIXO_PNG = "data:image/png;base64,";
 
 const RE_DATA = /^\d{4}-\d{2}-\d{2}$/;
 const VALOR_MAX = 99_999_999.99;
@@ -92,18 +93,9 @@ export async function POST(request: NextRequest, { params }: Contexto) {
     return NextResponse.json({ error: "Preencha a data e os dois nomes." }, { status: 400 });
   }
 
-  // Assinatura desenhada é obrigatória: é ela que faz o checklist valer
-  // como documento. Nome digitado sozinho prova pouco.
-  const assinaturas = c.assinaturas as { administrativo?: unknown; prestador?: unknown } | undefined;
-  const imagemAdm = imagemDeAssinatura(assinaturas?.administrativo);
-  const imagemPrestador = imagemDeAssinatura(assinaturas?.prestador);
-  if (!imagemAdm || !imagemPrestador) {
-    return NextResponse.json(
-      { error: "As duas assinaturas precisam ser desenhadas no quadro." },
-      { status: 400 }
-    );
-  }
-
+  // Nenhuma assinatura vem no corpo. Elas já estão no banco, cada uma posta
+  // por quem assinou, e é `exigir_assinaturas()` que recusa o registro se
+  // faltar alguma — com a frase dizendo qual falta.
   const solicitacao = await carregarSolicitacao(usuario.accessToken, params.id);
   if (!solicitacao) return NextResponse.json({ error: "Solicitação não encontrada." }, { status: 404 });
 
@@ -134,19 +126,16 @@ export async function POST(request: NextRequest, { params }: Contexto) {
   if (typeof itens === "string") return NextResponse.json({ error: itens }, { status: 400 });
 
   const sb = clienteDoUsuario(usuario.accessToken);
-  const momento: MomentoAssinatura = entrega ? "Retirada" : "Devolução";
 
   try {
+    // `p_adm` e `p_prestador` seguem no contrato como reserva, mas a função
+    // prefere os nomes das ASSINATURAS: assim o cabeçalho impresso nunca diz
+    // um nome diferente de quem assinou.
     const { data: resultado, error } = await sb.rpc(
       entrega ? "registrar_entrega_solicitacao" : "registrar_devolucao_solicitacao",
       { p_solicitacao: params.id, p_data: data, p_adm: adm, p_prestador: prestador, p_itens: itens }
     );
     if (error) throw error;
-
-    await gravarAssinaturas(sb, params.id, momento, [
-      { papel: "Administrativo", nome: adm, imagem: imagemAdm },
-      { papel: "Prestador", nome: prestador, imagem: imagemPrestador },
-    ]);
 
     const r = (resultado ?? {}) as {
       baixados?: number;
@@ -175,46 +164,11 @@ export async function POST(request: NextRequest, { params }: Contexto) {
   }
 }
 
-/**
- * Uma assinatura por momento e papel. Conflito de chave única significa
- * "já assinado" — e isso NÃO é erro que valha interromper a conferência,
- * que já foi registrada e mexeu no estoque. Registra e segue.
- */
-async function gravarAssinaturas(
-  sb: ReturnType<typeof clienteDoUsuario>,
-  id: string,
-  momento: MomentoAssinatura,
-  assinaturas: readonly { papel: string; nome: string; imagem: string }[]
-): Promise<void> {
-  for (const a of assinaturas) {
-    const { error } = await sb.from("solicitacao_assinaturas").insert({
-      solicitacao_id: id,
-      momento,
-      papel: a.papel,
-      nome: a.nome.toUpperCase(),
-      imagem: a.imagem,
-    });
-    if (!error) continue;
-    const jaExiste = /duplicate key|already exists/i.test(String(error.message ?? ""));
-    if (!tabelaNaoExiste(error) && !jaExiste) {
-      console.warn(`[conferencia] assinatura ${a.papel} não gravada`, error);
-    }
-  }
-}
-
 function texto(valor: unknown, max: number): string | null {
   if (typeof valor !== "string") return null;
   const limpo = valor.trim();
   if (!limpo || limpo.length > max) return null;
   return limpo;
-}
-
-/** PNG em data URL, dentro dos limites que o banco aceita. */
-function imagemDeAssinatura(valor: unknown): string | null {
-  if (typeof valor !== "string") return null;
-  if (!valor.startsWith(PREFIXO_PNG)) return null;
-  if (valor.length < IMAGEM_MIN || valor.length > IMAGEM_MAX) return null;
-  return valor;
 }
 
 function dinheiro(valor: unknown): number | null {

@@ -1480,10 +1480,73 @@ input.form-control.sst-na{color:var(--text-muted);font-weight:700}
 .chk-assin img{max-height:2.6rem;max-width:100%;object-fit:contain}
 .chk-assinaturas .chk-linha-assinada{border-bottom:1px solid #333;margin-top:0}
 
+/* ═══════════════ O CHECKLIST QUE SE PREENCHE NA TELA ═══════════════
+   A folha deixou de ser só impressão: os quadradinhos do momento em curso
+   são botões, a avaria se descreve aqui e cada um assina o seu lado.
+
+   Tudo que é FERRAMENTA leva `.chk-sem-print` e desaparece no papel —
+   botões, quadros de assinatura, campos de edição. O que o papel recebe é
+   o resultado: o X marcado, a assinatura registrada, o texto salvo. Sem
+   isso, a folha impressa sairia com um botão "Registrar retirada"
+   desenhado nela. */
+.chk-acoes{
+  display:flex;flex-direction:column;gap:.35rem;margin:.2rem 0 .8rem;
+  padding:.6rem .75rem;background:var(--bg-card);color:var(--text-primary);
+  border:1px solid var(--border-color);border-radius:var(--radius-md)
+}
+.chk-acoes-linha{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.chk-acoes-linha>strong{font-size:.82rem}
+.chk-acoes-data{display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--text-secondary)}
+.chk-acoes-data .form-control{width:8.5rem}
+
+/* O quadradinho clicável é o MESMO desenho do impresso — muda o cursor e o
+   foco, não a forma. Trocar a aparência faria a tela e o papel contarem
+   histórias diferentes sobre o mesmo dado. */
+.chk-box-btn{cursor:pointer;padding:0;font-family:inherit;background:transparent;transition:var(--transition)}
+.chk-box-btn:hover{background:#dbe6fb;border-color:#071d49}
+.chk-box-btn:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+
+.chk-obs-campo{font-size:.7rem;padding:.15rem .3rem;height:auto;min-width:9rem}
+
+.chk-avarias{
+  margin:.3rem 0 .9rem;padding:.6rem .75rem;background:var(--bg-card);
+  border:1px solid var(--border-color);border-left:3px solid var(--red);
+  border-radius:var(--radius-md);color:var(--text-primary)
+}
+.chk-avaria-linha{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.4rem}
+.chk-avaria-linha>strong{flex:1 0 12rem;font-size:.74rem}
+.chk-avaria-linha .form-control{flex:1 1 8rem;min-width:7rem}
+
+/* O quadro de assinatura mora DENTRO do bloco da assinatura, embaixo da
+   linha que ele vai preencher — assim quem assina vê o que está assinando. */
+.chk-assinar{display:flex;flex-direction:column;gap:.4rem;margin:.5rem 0 1rem;align-items:flex-start}
+.chk-assinar-nota{font-size:.62rem;color:var(--text-secondary)}
+.chk-assinar-aviso{
+  margin:.4rem 0 1rem;font-size:.68rem;color:var(--text-secondary);font-style:italic
+}
+
+.chk-observacoes{margin:.8rem 0}
+.chk-observacoes>strong{
+  display:block;font-size:.78rem;color:#071d49;text-transform:uppercase;
+  letter-spacing:.04em;margin-bottom:.3rem
+}
+.chk-observacoes textarea{font-size:.74rem}
+/* O texto salvo: escondido na TELA (quem edita já o vê na caixa) e visível
+   no PAPEL, que é onde ele precisa aparecer. `white-space:pre-wrap` para a
+   quebra de linha de quem escreveu sobreviver à impressão. */
+.chk-observacoes-impresso{
+  display:none;margin:.3rem 0 0;font-size:.74rem;color:#111;white-space:pre-wrap
+}
+
 @media print{
   /* O modal de checklist é o único que imprime, e as imagens de
      assinatura precisam sair — por isso a regra de cor exata. */
   #checklistFolha img{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  /* Ferramenta não vai para o papel. `visibility` e não `display` para
+     acompanhar a regra de cima, que trabalha com visibility. */
+  #checklistFolha .chk-sem-print,#checklistFolha .chk-sem-print *{visibility:hidden}
+  #checklistFolha .chk-sem-print{display:none}
+  #checklistFolha .chk-observacoes-impresso{display:block}
 }
 
 /* Aviso do campo "Código Clockify": diz se a lista veio da API ou se o

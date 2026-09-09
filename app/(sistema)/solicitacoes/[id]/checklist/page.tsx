@@ -16,10 +16,16 @@
 
 import { notFound } from "next/navigation";
 import { exigirSessao } from "@/lib/sessao";
-import { carregarDados, carregarFilhasDaSolicitacao } from "@/lib/dados";
+import { carregarDados, carregarFilhasDaSolicitacao, carregarSituacaoDasAssinaturas } from "@/lib/dados";
 import { BotoesDoChecklist } from "@/app/(sistema)/solicitacoes/[id]/checklist/BotoesDoChecklist";
+import {
+  AssinarNoChecklist,
+  ChecklistDeConferencia,
+  ObservacoesDoChecklist,
+} from "@/app/(sistema)/solicitacoes/[id]/checklist/ChecklistDeConferencia";
 import { dataISOparaBR, formatarData } from "@/lib/formato";
 import { periodoTexto } from "@/lib/consultas";
+import { podeEditar, podeRegistrarDevolucao, podeRegistrarEntrega } from "@/lib/papeis";
 import type { MomentoAssinatura, PapelAssinatura, SolicitacaoAssinatura } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +42,18 @@ export default async function PaginaDeChecklist({ params }: { params: { id: stri
   // sistema carregar toda assinatura da empresa. Ver
   // `carregarFilhasDaSolicitacao`.
   const { assinaturas } = await carregarFilhasDaSolicitacao(usuario.accessToken, s.id);
+
+  // Quem já assinou o quê, e qual papel ESTA pessoa pode assinar. Vem do
+  // banco porque a segunda pergunta depende de `eh_administrativo()` e de
+  // estar na equipe do campo — coisas que só ele sabe sobre `auth.uid()`.
+  const situacaoDasAssinaturas = await carregarSituacaoDasAssinaturas(usuario.accessToken, s.id);
+
+  // A janela em que a conferência é possível é a mesma que o banco aceita:
+  // equipamento não sai antes da aprovação, e a volta só depois da saída.
+  const emRetirada = !s.entrega_data;
+  const podeConferir = emRetirada
+    ? podeRegistrarEntrega(s.status)
+    : podeRegistrarDevolucao(s.status);
 
   const itemPorId = new Map(dados.catalogo.map((i) => [i.id, i]));
 
@@ -181,73 +199,77 @@ export default async function PaginaDeChecklist({ params }: { params: { id: stri
           </div>
         )}
 
-        <table className="chk-itens">
-          <thead>
-            <tr>
-              <th rowSpan={2}>#</th>
-              <th rowSpan={2}>Equipamento</th>
-              <th rowSpan={2}>Qtd.</th>
-              <th colSpan={2}>Retirada</th>
-              <th colSpan={3}>Devolução</th>
-              <th rowSpan={2}>Observação</th>
-            </tr>
-            <tr>
-              <th>Conf.</th>
-              <th>Teste</th>
-              <th>Conf.</th>
-              <th>Teste</th>
-              <th>Avaria</th>
-            </tr>
-          </thead>
-          <tbody>
-            {s.equipamentos.map((e, i) => {
-              const item = e.item_id ? itemPorId.get(e.item_id) : undefined;
-              return (
-                <tr key={e.id}>
-                  <td className="chk-num">{String(i + 1).padStart(2, "0")}</td>
-                  <td className="chk-item">
-                    {item ? `${item.produto} · ${item.codigo}` : (e.descricao ?? "Item fora do catálogo")}
-                  </td>
-                  <td>{e.quantidade}</td>
-                  <td>
-                    <Caixa marcado={e.entregue} />
-                  </td>
-                  <td>
-                    <Caixa marcado={e.teste_entrega} />
-                  </td>
-                  <td>
-                    <Caixa marcado={e.devolvido} />
-                  </td>
-                  <td>
-                    <Caixa marcado={e.teste_devolucao} />
-                  </td>
-                  <td>
-                    <Caixa marcado={e.avaria} />
-                  </td>
-                  <td className="chk-obs">{e.avaria_obs ?? ""}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        {/* A TABELA É INTERATIVA: os quadradinhos do momento em curso são
+            botões, a avaria se descreve aqui e o registro sai daqui. O
+            desenho impresso é o mesmo — ver ChecklistDeConferencia. */}
+        <ChecklistDeConferencia
+          solicitacao={s}
+          catalogo={dados.catalogo}
+          assinaturas={situacaoDasAssinaturas}
+          podeConferir={podeConferir}
+        />
 
         <p className="chk-instrucao">
           Na retirada, marque cada item conferido e testado. Na devolução, confira de novo item por item: o que
           não voltar fica em branco e a solicitação continua aberta; avaria deve ser descrita na observação.
         </p>
 
+        {/* A área editável da folha: o que o formulário não previu. */}
+        <ObservacoesDoChecklist
+          solicitacaoId={s.id}
+          inicial={s.checklist_observacoes ?? ""}
+          editavel={podeEditar(s.status)}
+        />
+
         <div className="chk-assinaturas">
           <div>
             <strong>Retirada</strong>
             <p>Data: {dataISOparaBR(s.entrega_data) || "____/____/______"}</p>
             <AssinaturaImpressa assinaturas={assinaturas} momento="Retirada" papel="Administrativo" digitado={s.entrega_adm} />
+            <AssinarNoChecklist
+              solicitacaoId={s.id}
+              momento="Retirada"
+              papel="Administrativo"
+              jaAssinada={!!situacaoDasAssinaturas.find((a) => a.momento === "Retirada")?.adm_assinada}
+              euAssino={situacaoDasAssinaturas.find((a) => a.momento === "Retirada")?.eu_assino ?? null}
+              bloqueado={false}
+            />
             <AssinaturaImpressa assinaturas={assinaturas} momento="Retirada" papel="Prestador" digitado={s.entrega_prestador} />
+            <AssinarNoChecklist
+              solicitacaoId={s.id}
+              momento="Retirada"
+              papel="Prestador"
+              jaAssinada={!!situacaoDasAssinaturas.find((a) => a.momento === "Retirada")?.prestador_assinada}
+              euAssino={situacaoDasAssinaturas.find((a) => a.momento === "Retirada")?.eu_assino ?? null}
+              bloqueado={false}
+            />
           </div>
           <div>
             <strong>Devolução</strong>
             <p>Data: {dataISOparaBR(s.devolucao_data) || "____/____/______"}</p>
             <AssinaturaImpressa assinaturas={assinaturas} momento="Devolução" papel="Administrativo" digitado={s.devolucao_adm} />
+            <AssinarNoChecklist
+              solicitacaoId={s.id}
+              momento="Devolução"
+              papel="Administrativo"
+              jaAssinada={!!situacaoDasAssinaturas.find((a) => a.momento === "Devolução")?.adm_assinada}
+              euAssino={situacaoDasAssinaturas.find((a) => a.momento === "Devolução")?.eu_assino ?? null}
+              // A volta não se assina antes da saída: assinar a devolução de
+              // material que não saiu é registro falso, e a folha impressa
+              // não distingue isso depois. O banco recusa igual.
+              bloqueado={emRetirada}
+              motivoDoBloqueio="A devolução só pode ser assinada depois de a retirada ser registrada."
+            />
             <AssinaturaImpressa assinaturas={assinaturas} momento="Devolução" papel="Prestador" digitado={s.devolucao_prestador} />
+            <AssinarNoChecklist
+              solicitacaoId={s.id}
+              momento="Devolução"
+              papel="Prestador"
+              jaAssinada={!!situacaoDasAssinaturas.find((a) => a.momento === "Devolução")?.prestador_assinada}
+              euAssino={situacaoDasAssinaturas.find((a) => a.momento === "Devolução")?.eu_assino ?? null}
+              bloqueado={emRetirada}
+              motivoDoBloqueio="A devolução só pode ser assinada depois de a retirada ser registrada."
+            />
           </div>
         </div>
         </div>

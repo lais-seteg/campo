@@ -17,11 +17,10 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Modal } from "@/app/components/Modal";
 import { useAvisos } from "@/app/components/Avisos";
 import { CampoMascarado, Caixa } from "@/app/components/Campos";
-import { Assinatura, type ControleDaAssinatura } from "@/app/components/Assinatura";
 import { Icone } from "@/app/components/Icone";
 import { mensagemDoErro, post } from "@/app/components/api";
 import { dataBRparaISO, dataISOparaBR, formatarNumeroBR, hojeISO, parseMoeda } from "@/lib/formato";
@@ -72,9 +71,6 @@ export function RegistrarConferencia({
   // material em campo.
   const [prestador, setPrestador] = useState(() => s.equipe.find((e) => e.lider)?.colaborador ?? "");
 
-  const assinaturaAdm = useRef<ControleDaAssinatura>(null);
-  const assinaturaPrestador = useRef<ControleDaAssinatura>(null);
-
   const itemPorId = new Map(catalogo.map((i) => [i.id, i]));
   const [linhas, setLinhas] = useState<LinhaDeConferencia[]>(() =>
     s.equipamentos.map((e) => {
@@ -107,13 +103,6 @@ export function RegistrarConferencia({
       return;
     }
 
-    const imagemAdm = assinaturaAdm.current?.capturar() ?? null;
-    const imagemPrestador = assinaturaPrestador.current?.capturar() ?? null;
-    if (!imagemAdm || !imagemPrestador) {
-      avisar("As duas assinaturas precisam ser desenhadas no quadro.", "erro");
-      return;
-    }
-
     setOcupado(true);
     try {
       const r = await post<{
@@ -126,7 +115,6 @@ export function RegistrarConferencia({
         data: dataIso,
         adm,
         prestador,
-        assinaturas: { administrativo: imagemAdm, prestador: imagemPrestador },
         itens: linhas.map((l) =>
           entrega
             ? { id: l.id, entregue: l.marcado, teste: l.teste }
@@ -308,13 +296,21 @@ export function RegistrarConferencia({
             : "Registrar a devolução dá ENTRADA dos itens no Controle de Estoque. Informar o fornecedor do reparo numa avaria abre a manutenção do bem lá — sem fornecedor, o item volta disponível e a avaria fica no relatório aguardando encaminhamento."}
         </p>
 
-        <div className="modal-subtitle">Assinatura digital</div>
-        <div className="assin-grid">
-          <Assinatura ref={assinaturaAdm} rotulo={`Administrativo · ${momento}`} />
-          <Assinatura ref={assinaturaPrestador} rotulo={`Prestador · ${momento}`} />
-        </div>
+        {/* ── A ASSINATURA NÃO ACONTECE AQUI ──
+            Ela saiu deste modal de propósito. Antes os dois quadros ficavam
+            lado a lado e uma pessoa desenhava os dois traços no mesmo
+            aparelho — o que provava que alguém desenhou duas vezes, e não
+            quem eram. Agora cada um assina no PRÓPRIO acesso, no checklist,
+            e a linha guarda quem estava logado.
+
+            O registro abaixo só passa com as duas assinaturas de {momento}
+            já no banco; quem cobra isso é `exigir_assinaturas()`, dentro da
+            função que move o estoque. */}
         <p className="modal-hint">
-          A assinatura entra e não sai: uma vez registrada, não é reescrita pelo sistema.
+          <strong>As assinaturas são feitas no checklist</strong>, cada um no seu acesso: o
+          administrativo de um lado, quem recebe o material do outro. Este registro só passa
+          quando as duas assinaturas de {momento.toLowerCase()} existirem — e é ele que move o
+          estoque. A assinatura entra e não sai: registrada, não é reescrita pelo sistema.
         </p>
       </Modal>
     </>

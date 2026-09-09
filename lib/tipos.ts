@@ -220,6 +220,22 @@ export type SituacaoReserva = (typeof SITUACOES_RESERVA)[number];
 export const MOMENTOS_ASSINATURA = ["Retirada", "Devolução"] as const;
 export type MomentoAssinatura = (typeof MOMENTOS_ASSINATURA)[number];
 
+/**
+ * Retorno de `situacao_das_assinaturas(id)` — quem já assinou o quê, e qual
+ * papel a PESSOA LOGADA pode assinar (`null` quando ela não é parte desta
+ * solicitação).
+ *
+ * O papel é decidido pelo banco e não escolhido pelo cliente: se fosse
+ * escolhido, uma pessoa assinaria as duas linhas, que é justamente o que
+ * "cada um assina no seu acesso" existe para impedir (supabase/14).
+ */
+export interface SituacaoDaAssinatura {
+  momento: MomentoAssinatura;
+  adm_assinada: boolean;
+  prestador_assinada: boolean;
+  eu_assino: PapelAssinatura | null;
+}
+
 export const PAPEIS_ASSINATURA = ["Administrativo", "Prestador"] as const;
 export type PapelAssinatura = (typeof PAPEIS_ASSINATURA)[number];
 
@@ -645,6 +661,20 @@ export interface SolicitacaoCabecalho {
   sst_observacao: string | null;
   /** Calculada pelo banco. Meia conferência não é conferência. */
   sst_identificacao: IdentificacaoSst;
+
+  /**
+   * A área editável do checklist (supabase/14): o que o formulário não
+   * previu e sai impresso na folha.
+   *
+   * TEXTO, e não HTML — ao contrário da Ordem de Compra do SGC, que este
+   * checklist imita. A OC é documento congelado e guarda HTML editado;
+   * aqui a estrutura da folha é gerada e viva (os quadradinhos movem o
+   * estoque), e o que se escreve é frase. Texto puro dispensa o
+   * sanitizador que a OC precisou ter.
+   *
+   * Opcional porque `solicitacoes` é lida com `select *`.
+   */
+  checklist_observacoes?: string | null;
 
   criado_em: string;
   atualizado_em: string;
