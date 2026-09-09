@@ -344,27 +344,36 @@ button,input,select,textarea{font-family:inherit}
    — então ela NÃO acompanha o `thead` grudado no topo: rolava junto com o
    corpo e o cabeçalho ficava boiando sem separação sobre as linhas. Sombra
    interna é pintada na célula e fica onde a célula está. */
-/* ── A TABELA CABE NA TELA; NÃO SE ROLA PARA O LADO ──
-   O cabeçalho era `white-space:nowrap`, e era ele o principal culpado: numa
-   tabela de treze colunas, "CÓDIGO CLOCKIFY" e "CLIENTE | PROJETO" em uma
-   linha só impunham uma largura mínima que somada estourava qualquer tela —
-   e o que sobrava era rolar para o lado, com metade da informação escondida
-   fora do campo de visão. Coluna que se precisa rolar para ver é coluna que
-   não está na tela.
+/* ── O RÓTULO DA COLUNA NÃO QUEBRA ──
+   Ele quebrava em duas linhas ("CLIENTE |" / "PROJETO", "PREVISTO ×" /
+   "REAL"), o que economizava largura mas cobrava caro na leitura: o rótulo
+   é o que se lê PRIMEIRO para achar a coluna, e partido ao meio ele deixa
+   de ser um nome e passa a ser duas palavras soltas que a pessoa remonta.
+   Numa faixa de cabeçalho de treze colunas, treze rótulos remontados é o
+   que faz a tabela parecer confusa mesmo com os dados certos.
 
-   Agora o rótulo QUEBRA em duas linhas. Custa uma faixa de cabeçalho um
-   pouco mais alta — uma vez, no topo — e devolve a largura de todas as
-   linhas de dado. `hyphens:auto` para a quebra cair em sílaba e não no meio
-   da palavra.
+   Então o cabeçalho volta a `nowrap`. A largura extra que isso reserva é
+   pequena e cabe agora: recuperamos ~96px do respiro lateral e ~145px do
+   nowrap desnecessário da coluna Período (ver `--secao-padding-x` e
+   `cel-inteiro`), e o rótulo em maiúscula de .63rem é bem mais estreito
+   que o dado embaixo dele em quase toda coluna — "SOLICITANTE" contra um
+   nome completo, "CLIENTE | PROJETO" contra cliente e projeto por extenso.
+   Onde ele passa a mandar na largura é só na coluna de dinheiro, e ali são
+   uns 30px.
+
+   O nowrap é do RÓTULO, não da célula: `td` continua podendo quebrar, que
+   é o que mantém a tabela dentro da tela. Se em alguma tela isto voltar a
+   forçar rolagem lateral, a saída é encurtar o texto do rótulo — não
+   deixá-lo quebrar de novo.
 
    `vertical-align:top` no corpo pelo mesmo motivo do subgrid da grade de
-   informação: com células que agora podem quebrar em duas linhas, o
-   alinhamento pelo meio faria cada valor começar numa altura diferente. */
+   informação: com células que podem quebrar em duas linhas, o alinhamento
+   pelo meio faria cada valor começar numa altura diferente. */
 .art-table th{
   padding:.5rem .55rem;text-align:left;font-weight:800;color:var(--text-secondary);
   text-transform:uppercase;font-size:.63rem;letter-spacing:.04em;
   box-shadow:inset 0 -1px 0 var(--border-color);
-  white-space:normal;hyphens:auto;vertical-align:bottom;line-height:1.2
+  white-space:nowrap;vertical-align:bottom;line-height:1.2
 }
 .art-table td{
   padding:.5rem .55rem;border-bottom:1px solid var(--border-color);
