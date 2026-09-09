@@ -468,6 +468,49 @@ td.table-actions.acoes-fila{flex-wrap:wrap;justify-content:center;gap:.25rem}
 .info-grid .duplo{grid-column:span 2}
 .info-grid span{display:block;font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.15rem}
 .info-grid strong{font-size:.84rem;color:var(--text-primary);font-weight:700}
+
+/* ── OS RÓTULOS NUMA FILEIRA, OS VALORES NA SEGUINTE ──
+   Cada campo é um `<div>` com rótulo em cima e valor embaixo. Como cada um
+   era uma caixa independente, a altura dele saía do próprio conteúdo: um
+   rótulo que quebrava em duas linhas empurrava o valor dele para baixo, e um
+   valor que é SELO (mais alto que texto) empurrava o de baixo — então numa
+   mesma fileira os rótulos começavam em alturas diferentes e os valores
+   também. Alinhado na horizontal, torto na vertical.
+
+   `subgrid` resolve pela raiz: o campo deixa de ter fileiras próprias e passa
+   a usar as DO PAI. Todos os rótulos de uma fileira caem na mesma trilha,
+   todos os valores na trilha seguinte, e a altura de cada trilha é a do
+   maior item dela. Nada mais empurra nada.
+
+   Com isso o `row-gap` do pai passa a ser a distância RÓTULO → VALOR (daí
+   ele cair para .15rem, o mesmo respiro que o `margin-bottom` do rótulo
+   dava), e o espaço ENTRE FILEIRAS de campos vem do `padding-bottom` do
+   campo. Sem essa troca as duas medidas se somariam e a grade dobraria de
+   altura.
+
+   `@supports` porque isto é uma MELHORIA, não um requisito: navegador sem
+   subgrid continua com o comportamento de antes, que funciona — só não fica
+   alinhado. Nada quebra. */
+@supports (grid-template-rows: subgrid) {
+  .info-grid{row-gap:.15rem}
+  .info-grid>div{
+    display:grid;
+    grid-template-rows:subgrid;
+    grid-row:span 2;
+    /* Separa uma fileira de campos da próxima, agora que o row-gap virou o
+       respiro interno do campo. */
+    padding-bottom:.6rem;
+    /* Rótulo e valor encostam no TOPO da trilha de cada um. `align-items` e
+       não `align-content`: num subgrid as trilhas são do pai, então o que
+       se posiciona são os FILHOS dentro delas. Sem isto, um valor curto ao
+       lado de um que quebrou em duas linhas ficaria centralizado na trilha e
+       voltaria a parecer desalinhado. */
+    align-items:start;
+  }
+  /* O respiro rótulo → valor agora é o row-gap do pai; manter a margem
+     somaria os dois. */
+  .info-grid span{margin-bottom:0}
+}
 .modal-subtitle{font-size:.74rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin:1.1rem 0 .5rem;padding-top:.9rem;border-top:1px solid var(--border-color)}
 .modal-subtitle:first-of-type{border-top:none;padding-top:0}
 .mini-lista{display:flex;flex-direction:column;gap:.4rem;max-height:160px;overflow-y:auto}
