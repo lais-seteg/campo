@@ -263,6 +263,9 @@ export function ListaDeSolicitacoes({
                   <th>Tipo</th>
                   <th>Solicitante</th>
                   <th>Cliente | Projeto</th>
+                  {/* O PROGRAMA do campo — é por ele que se separa o campo de
+                      fauna do de ruído dentro do mesmo contrato. */}
+                  <th>Escopo</th>
                   <th>Destino</th>
                   <th>Período</th>
                   <th>Equipe</th>
@@ -285,6 +288,7 @@ export function ListaDeSolicitacoes({
                     <td>{s.tipo}</td>
                     <td>{s.solicitante_nome || "—"}</td>
                     <td>{s.cliente_projeto || "—"}</td>
+                    <td>{s.escopo || "—"}</td>
                     <td>{s.destino || "—"}</td>
                     <td>{periodoTexto(s)}</td>
                     <td>{equipeResumo(s)}</td>
@@ -455,7 +459,7 @@ function resumo(
 // tem previsto — que é uma informação errada, e não uma ausente.
 
 const COLUNAS_BASE = [
-  "Código", "Tipo", "Status", "Solicitante", "Setor", "Cliente | Projeto", "Código Clockify",
+  "Código", "Tipo", "Status", "Solicitante", "Setor", "Cliente | Projeto", "Escopo", "Código Clockify",
   "Destino", "Período", "Dias", "Equipe", "Líder", "Recurso até",
   "Veículo", "Modalidade", "Locadora", "Contrato", "Placa",
   "Hospedagem", "Equipamentos", "Reservados",
@@ -485,7 +489,7 @@ function linhaCsv(s: SolicitacaoDeLista, verValores: boolean): unknown[] {
   const dias = s.periodo_inicio && s.periodo_fim ? diasDeCampo(s.periodo_inicio, s.periodo_fim) : "";
 
   const base = [
-    s.codigo, s.tipo, s.status, s.solicitante_nome, s.setor, s.cliente_projeto, s.codigo_clockify,
+    s.codigo, s.tipo, s.status, s.solicitante_nome, s.setor, s.cliente_projeto, s.escopo ?? "", s.codigo_clockify,
     s.destino, periodoTexto(s), dias,
     s.equipe.map((e) => e.colaborador).join(" / "),
     lider ? lider.colaborador : "",

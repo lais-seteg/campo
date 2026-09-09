@@ -104,6 +104,11 @@ export function InformacoesDaSolicitacao({
         <Info rotulo="Setor">{s.setor || "—"}</Info>
         <Info rotulo="Data da solicitação">{formatarData(s.criado_em)}</Info>
         <Info rotulo="Recurso até">{dataISOparaBR(s.data_recurso) || "—"}</Info>
+        {/* O PROGRAMA deste campo — é ele que permite somar gasto por
+            programa, e não só por contrato. */}
+        <Info rotulo="Escopo do campo">
+          {s.escopo ? <Selo texto={s.escopo} classe="st-info" /> : "—"}
+        </Info>
         <Info rotulo="Código Clockify">{s.codigo_clockify || "—"}</Info>
         <Info rotulo="Destino">{s.destino || "—"}</Info>
         <Info rotulo="Período">{periodoTexto(s)}</Info>

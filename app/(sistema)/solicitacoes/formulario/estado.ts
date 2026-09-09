@@ -89,6 +89,13 @@ export interface EstadoDoFormulario {
   projetoId: string;
   dataRecurso: string;
   clienteProjeto: string;
+  /**
+   * O PROGRAMA deste campo, escolhido entre os do projeto (Fauna, Ruído,
+   * Flora…). É ele que permite somar gasto por programa, e não só por
+   * contrato — um contrato com quatro programas tem quatro orçamentos que
+   * se consomem em ritmos diferentes.
+   */
+  escopo: string;
   codigoClockify: string;
   destino: string;
   periodoInicio: string;
@@ -167,6 +174,7 @@ export function formularioVazio(): EstadoDoFormulario {
     projetoId: "",
     dataRecurso: "",
     clienteProjeto: "",
+    escopo: "",
     codigoClockify: "",
     destino: "",
     periodoInicio: "",
@@ -288,6 +296,7 @@ export function formularioDeSolicitacao(s: SolicitacaoDeLista): EstadoDoFormular
     projetoId: s.projeto_id ?? "",
     dataRecurso: dataISOparaBR(s.data_recurso),
     clienteProjeto: s.cliente_projeto,
+    escopo: s.escopo ?? "",
     codigoClockify: s.codigo_clockify ?? "",
     destino: s.destino ?? "",
     periodoInicio: dataISOparaBR(s.periodo_inicio),
@@ -406,6 +415,7 @@ export function montarCorpo(f: EstadoDoFormulario): Record<string, unknown> {
     projeto_id: f.projetoId,
     data_recurso: dataBRparaISO(f.dataRecurso) || null,
     cliente_projeto: f.clienteProjeto,
+    escopo: f.escopo.trim() || null,
     codigo_clockify: f.codigoClockify,
     destino: f.destino,
     periodo_inicio: dataBRparaISO(f.periodoInicio),

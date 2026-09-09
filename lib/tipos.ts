@@ -579,6 +579,19 @@ export interface SolicitacaoCabecalho {
   projeto_id: string | null;
   cliente_projeto: string;
   codigo_clockify: string | null;
+  /**
+   * O PROGRAMA deste campo, escolhido entre os de `projetos.escopo` — FAUNA,
+   * RUIDO, Flora, Qualidade do Ar… (supabase/15).
+   *
+   * É esta coluna que permite somar gasto POR PROGRAMA, e não só por
+   * contrato: um contrato com quatro programas tem quatro orçamentos que se
+   * consomem em ritmos diferentes.
+   *
+   * Texto e não FK — os programas vivem numa coluna separada por vírgula no
+   * projeto, e o pedido registra o que existia quando foi aberto, como já
+   * faz com `cliente_projeto`. Opcional porque a leitura usa `select *`.
+   */
+  escopo?: string | null;
   destino: string | null;
   periodo_inicio: string | null;
   periodo_fim: string | null;

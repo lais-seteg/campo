@@ -189,6 +189,27 @@ export function liderDaSolicitacao(
   return projeto?.lider || "—";
 }
 
+/**
+ * Os PROGRAMAS de um projeto — Fauna, Ruído, Flora, Qualidade do Ar… A
+ * lista muda a cada contrato.
+ *
+ * `projetos.escopo` é uma coluna de texto separada por vírgula: foi assim
+ * que os projetos antigos foram gravados, e é isso que a busca da aba e a
+ * exportação leem. Esta função é o único lugar que sabe disso — quem
+ * precisa da lista pergunta aqui, em vez de repetir o `split(",")` e a
+ * limpeza em cada tela.
+ *
+ * Devolve `[]` quando o projeto não tem programa cadastrado, e é a tela que
+ * decide o que fazer com o vazio: o formulário de solicitação some com o
+ * campo, o cadastro de projetos abre uma linha em branco para preencher.
+ */
+export function programasDoProjeto(escopo: string | null | undefined): string[] {
+  return (escopo ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 // ─── Filtro da lista de solicitações ─────────────────────────────────────
 
 export interface FiltrosDeSolicitacao {

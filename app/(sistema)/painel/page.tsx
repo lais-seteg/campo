@@ -102,6 +102,10 @@ export default async function PaginaDePainel() {
 
   const linhasPorProjeto = consolidarPorProjeto(projetos, solicitacoes, gastosPrevistos);
 
+  // Por PROGRAMA, e não por contrato: somados, um programa que estourou fica
+  // escondido atrás de outro que sobrou.
+  const porEscopo = consolidarPorEscopo(solicitacoes);
+
   return (
     <section className="secao active">
       <CabecalhoDeSecao
@@ -279,6 +283,65 @@ export default async function PaginaDePainel() {
         </div>
       </div>
 
+      {/* ══ QUANTO CADA ESCOPO GASTA ══
+          A tabela acima responde por CONTRATO; esta responde por PROGRAMA.
+          Um contrato com quatro programas tem quatro equipes, quatro escalas
+          e quatro orçamentos que se consomem em ritmos diferentes — somados,
+          um programa que estourou fica escondido atrás de outro que sobrou.
+
+          Só aparece quando há campo com escopo escolhido: uma tabela vazia
+          com um título por cima faz a tela parecer quebrada, e antes de o
+          escopo existir nos pedidos não há o que agrupar. */}
+      {porEscopo.length ? (
+        <div className="lista-wrapper" style={{ marginTop: ".7rem", flex: "none" }}>
+          <div className="modal-subtitle">Gasto por escopo</div>
+          <div className="table-wrapper">
+            <div className="table-scroll">
+              <table className="art-table tabela-centralizada">
+                <thead>
+                  <tr>
+                    <th>Escopo</th>
+                    <th>Campos</th>
+                    <th>Previsto</th>
+                    <th>Real</th>
+                    <th>Sendo avaria</th>
+                    <th>Desvio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {porEscopo.map((e) => {
+                    const desvio = e.real - e.previsto;
+                    return (
+                      <tr key={e.escopo}>
+                        <td>{e.escopo}</td>
+                        <td>{e.campos}</td>
+                        <td>{formatarMoeda(e.previsto)}</td>
+                        <td>{formatarMoeda(e.real)}</td>
+                        <td>{e.avaria > 0 ? formatarMoeda(e.avaria) : "—"}</td>
+                        <td>
+                          {/* Sem previsto informado não há desvio a mostrar:
+                              "+R$ 800" contra um previsto de zero acusaria
+                              estouro onde só falta preencher o previsto do
+                              campo. É a mesma regra da tabela de projetos. */}
+                          {e.previsto > 0 ? (
+                            <Selo
+                              texto={`${desvio > 0 ? "+" : desvio < 0 ? "−" : ""}${formatarMoeda(Math.abs(desvio))}`}
+                              classe={desvio > 0 ? "st-ruim" : desvio < 0 ? "st-ok" : "st-neutro"}
+                            />
+                          ) : (
+                            <Selo texto="Sem previsto" classe="st-perto" />
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Havia uma SEGUNDA tabela aqui, com as doze últimas solicitações.
           Ela saiu: repetia a aba Solicitações, que faz isso melhor (com
           filtro, busca, paginação e exportação), e roubava do Painel a
@@ -286,6 +349,46 @@ export default async function PaginaDePainel() {
           decidir olhando o todo; lista de pedido tem tela própria. */}
     </section>
   );
+}
+
+interface LinhaDeEscopo {
+  escopo: string;
+  campos: number;
+  previsto: number;
+  real: number;
+  avaria: number;
+}
+
+/**
+ * Soma previsto, real e avaria POR PROGRAMA.
+ *
+ * Campo sem escopo escolhido fica de fora, e isso é deliberado: jogá-lo num
+ * "Sem escopo" faria a soma dos programas bater com o total geral e dar a
+ * impressão de que está tudo classificado. Ficando fora, a diferença entre
+ * esta tabela e a de projetos é justamente o que ainda falta classificar.
+ *
+ * Ordenado pelo REAL, decrescente: quem abre o Painel quer ver primeiro
+ * onde o dinheiro está indo.
+ */
+function consolidarPorEscopo(solicitacoes: readonly SolicitacaoDeLista[]): LinhaDeEscopo[] {
+  const mapa = new Map<string, LinhaDeEscopo>();
+
+  for (const s of solicitacoes) {
+    const escopo = (s.escopo ?? "").trim();
+    if (!escopo) continue;
+
+    const atual =
+      mapa.get(escopo) ?? { escopo, campos: 0, previsto: 0, real: 0, avaria: 0 };
+    atual.campos += 1;
+    atual.previsto += Number(s.previsto_total) || 0;
+    atual.real += Number(s.real_total) || 0;
+    atual.avaria += Number(s.real_avaria) || 0;
+    mapa.set(escopo, atual);
+  }
+
+  // `Array.from` e não spread do iterador: o `target` deste projeto não
+  // liga `downlevelIteration`, e é a mesma forma que o resto do código usa.
+  return Array.from(mapa.values()).sort((a, b) => b.real - a.real);
 }
 
 interface LinhaDeProjeto {

@@ -47,6 +47,7 @@ import {
 import { EPIS_PADRAO, TECNICOS, classeDoCurso, calcularStatusCurso, diariasDoVinculo, diariaPorTipo } from "@/lib/listas";
 import { dataBRparaISO, diasDeCampo, formatarMoeda, formatarNumeroBR, parseMoeda } from "@/lib/formato";
 import { aceitaSolicitacaoNova } from "@/lib/papeis";
+import { programasDoProjeto } from "@/lib/consultas";
 import type { ListaClockify } from "@/lib/clockify";
 import {
   formularioVazio,
@@ -184,6 +185,21 @@ export function FormularioDeSolicitacao({
   }, []);
 
   const projetoEscolhido = projetos.find((p) => p.id === f.projetoId);
+
+  /**
+   * Os programas oferecidos no campo "Escopo do campo".
+   *
+   * São os do projeto escolhido MAIS o que já está gravado no pedido, e a
+   * união importa: editar um pedido antigo cujo programa a Direção depois
+   * renomeou ou removeu não pode esvaziar o campo ao salvar. Mesma razão
+   * pela qual o projeto fora de "Ativo" continua na lista de projetos.
+   */
+  const programas = (() => {
+    const doProjeto = programasDoProjeto(projetoEscolhido?.escopo);
+    const atual = f.escopo.trim();
+    if (atual && !doProjeto.includes(atual)) return [atual, ...doProjeto];
+    return doProjeto;
+  })();
   const sugestao = useMemo(
     () => sugerirPrevisto(f, projetos, diariasCadastradas),
     [f, projetos, diariasCadastradas]
@@ -374,6 +390,50 @@ export function FormularioDeSolicitacao({
                 </select>
               )}
             </Grupo>
+
+            {/* ══ O PROGRAMA DESTE CAMPO ══
+                A pergunta que faltava: um contrato com quatro programas tem
+                quatro equipes, quatro escalas e quatro orçamentos que se
+                consomem em ritmos diferentes. Sem esta escolha, o campo de
+                fauna e o de ruído entravam no mesmo bolo e dava para saber
+                quanto o CONTRATO custou, nunca quanto a FAUNA custou.
+
+                A lista vem do projeto escolhido, e é por isso que o campo
+                só existe depois de escolher o projeto — e desaparece
+                quando o projeto não tem programa cadastrado, em vez de
+                oferecer um select vazio. */}
+            {programas.length ? (
+              <Grupo
+                rotulo="Escopo do campo"
+                obrigatorio
+                dica={
+                  <span className="clockify-aviso">
+                    Qual programa deste contrato este campo atende. É o que
+                    permite somar o gasto por programa, no Painel.
+                  </span>
+                }
+              >
+                {(id) => (
+                  <select
+                    id={id}
+                    className="form-control"
+                    value={f.escopo}
+                    onChange={(e) => mudar({ escopo: e.target.value })}
+                  >
+                    <option value="">Selecione o escopo</option>
+                    {/* O escopo já gravado continua na lista mesmo que o
+                        projeto tenha sido reescrito depois: é a EDIÇÃO de um
+                        pedido antigo, e tirá-lo daqui esvaziaria o campo ao
+                        salvar. */}
+                    {programas.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Grupo>
+            ) : null}
 
             <Grupo rotulo="Cliente | Projeto" obrigatorio>
               {(id) => (

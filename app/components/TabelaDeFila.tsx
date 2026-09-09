@@ -58,6 +58,9 @@ export function TabelaDeFila({ fila, verValores, mostrarStatus = false, acoes, v
               <tr>
                 <th>Código</th>
                 <th>Cliente | Projeto</th>
+                {/* O PROGRAMA do campo: numa fila de um contrato com quatro
+                    programas, é o que separa o campo de fauna do de ruído. */}
+                <th>Escopo</th>
                 <th>Tipo</th>
                 <th>Solicitante</th>
                 <th>Destino</th>
@@ -84,6 +87,7 @@ export function TabelaDeFila({ fila, verValores, mostrarStatus = false, acoes, v
                 <tr key={s.id}>
                   <td>{s.codigo}</td>
                   <td>{s.cliente_projeto || "—"}</td>
+                  <td>{s.escopo || "—"}</td>
                   <td>{s.tipo}</td>
                   <td>{s.solicitante_nome || "—"}</td>
                   <td>{s.destino || "—"}</td>

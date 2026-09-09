@@ -113,6 +113,9 @@ export interface CorpoDeSolicitacao {
   projeto_id: string;
   data_recurso: string | null;
   cliente_projeto: string;
+  /** O programa deste campo, entre os de `projetos.escopo`. Opcional:
+   *  projeto sem programa cadastrado não tem o que escolher. */
+  escopo: string | null;
   codigo_clockify: string;
   destino: string;
   periodo_inicio: string;
@@ -221,6 +224,12 @@ export function validarSolicitacao(
 
   const clienteProjeto = texto(c.cliente_projeto);
   if (!clienteProjeto) return erro("Informe Cliente | Projeto.");
+
+  // O PROGRAMA do campo. Nao e obrigatorio aqui: projeto sem programa
+  // cadastrado nao tem o que oferecer, e travar o pedido por isso puniria
+  // quem pede por um cadastro que nao e dele. Quem cobra a escolha, quando
+  // ha o que escolher, e a tela.
+  const escopo = texto(c.escopo, 120);
 
   const codigoClockify = texto(c.codigo_clockify, 60);
   if (!codigoClockify) return erro("Informe o código Clockify.");
@@ -386,6 +395,7 @@ export function validarSolicitacao(
       projeto_id: projetoId,
       data_recurso: dataRecurso,
       cliente_projeto: maiusculas(clienteProjeto),
+      escopo: escopo ? maiusculas(escopo) : null,
       codigo_clockify: codigoClockify,
       destino: maiusculas(destino),
       periodo_inicio: inicio,
