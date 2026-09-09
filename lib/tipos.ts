@@ -410,6 +410,15 @@ export interface SolicitacaoHospedagem {
   id: string;
   solicitacao_id: string;
   cidade: string;
+  /**
+   * Quem dorme nesta cidade (supabase/13). Livre porque a linha é por
+   * CIDADE e pode abrigar mais de uma pessoa; o formulário oferece a equipe
+   * do próprio pedido como sugestão.
+   *
+   * Opcional no tipo porque as filhas são lidas com embed `*`: um deploy
+   * anterior à coluna não pode quebrar a leitura.
+   */
+  hospedes?: string | null;
   entrada: string | null;
   saida: string | null;
   dias: number | null;

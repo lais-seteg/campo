@@ -27,12 +27,16 @@ import type {
 import { dataBRparaISO, dataISOparaBR, diasDeCampo, formatarNumeroBR, parseMoeda } from "@/lib/formato";
 import { referenciaDaDiaria } from "@/lib/listas";
 
+// A equipe NÃO tem mais código Clockify por pessoa. O código que importa é
+// o do PROJETO, que fica no cabeçalho da solicitação e vem da API do
+// Clockify — repeti-lo por pessoa era pedir o mesmo dado N vezes, e a coluna
+// `solicitacao_equipe.codigo_clockify` continua no banco com o que já foi
+// gravado, sem nada novo sendo escrito nela.
 export interface LinhaDeEquipeForm {
   chave: string;
   colaborador: string;
   funcao: string;
   vinculo: Vinculo;
-  codigoClockify: string;
   telefone: string;
   lider: boolean;
 }
@@ -40,6 +44,8 @@ export interface LinhaDeEquipeForm {
 export interface LinhaDeHospedagemForm {
   chave: string;
   cidade: string;
+  /** Quem dorme nesta cidade — a linha é por cidade e pode abrigar vários. */
+  hospedes: string;
   hotelId: string;
   entrada: string;
   saida: string;
@@ -226,14 +232,21 @@ export function linhaDeEquipeVazia(): LinhaDeEquipeForm {
     colaborador: "",
     funcao: "",
     vinculo: "Seteg",
-    codigoClockify: "",
     telefone: "",
     lider: false,
   };
 }
 
 export function linhaDeHospedagemVazia(): LinhaDeHospedagemForm {
-  return { chave: novaChave(), cidade: "", hotelId: "", entrada: "", saida: "", diaria: "" };
+  return {
+    chave: novaChave(),
+    cidade: "",
+    hospedes: "",
+    hotelId: "",
+    entrada: "",
+    saida: "",
+    diaria: "",
+  };
 }
 
 export function linhaDeEquipamentoVazia(): LinhaDeEquipamentoForm {
@@ -287,7 +300,6 @@ export function formularioDeSolicitacao(s: SolicitacaoDeLista): EstadoDoFormular
           colaborador: e.colaborador,
           funcao: e.funcao ?? "",
           vinculo: e.vinculo,
-          codigoClockify: e.codigo_clockify ?? "",
           telefone: e.telefone ?? "",
           lider: e.lider,
         }))
@@ -313,6 +325,7 @@ export function formularioDeSolicitacao(s: SolicitacaoDeLista): EstadoDoFormular
     hospedagens: s.hospedagens.map((h) => ({
       chave: novaChave(),
       cidade: h.cidade,
+      hospedes: h.hospedes ?? "",
       hotelId: h.hotel_id ?? "",
       entrada: dataISOparaBR(h.entrada),
       saida: dataISOparaBR(h.saida),
@@ -383,6 +396,9 @@ export function montarCorpo(f: EstadoDoFormulario): Record<string, unknown> {
   const administrativo = f.tipo === "Administrativo";
   const comVeiculo = administrativo && f.veiculoNecessario;
   const comHospedagem = administrativo && f.hospedagemNecessaria;
+  // SST só existe no pedido administrativo: é ele que tira gente do
+  // escritório. Pedido financeiro é prestação de contas.
+  const comSst = administrativo && f.sstAplicavel;
 
   return {
     tipo: f.tipo,
@@ -425,15 +441,21 @@ export function montarCorpo(f: EstadoDoFormulario): Record<string, unknown> {
     real_alimentacao: parseMoeda(f.realAlimentacao),
     real_outros: parseMoeda(f.realOutros),
 
-    sst_aplicavel: f.sstAplicavel,
-    sst_apr_emitida: f.sstApr,
-    sst_pt_emitida: f.sstPt,
-    sst_dds_realizado: f.sstDds,
-    sst_treinamento_conferido: f.sstTreinamento,
-    sst_aso_conferido: f.sstAso,
-    sst_epi_conferido: f.sstEpi,
-    sst_responsavel: f.sstAplicavel ? f.sstResponsavel : null,
-    sst_observacao: f.sstAplicavel ? f.sstObservacao || null : null,
+    // ── SST É DO ADMINISTRATIVO ──
+    // O formulário financeiro não pergunta SST (a seção não é montada), e o
+    // padrão do estado é `sstAplicavel: true`. Sem este `comSst`, todo
+    // pedido financeiro seria gravado como "SST se aplica" sem nenhum EPI —
+    // e apareceria no Painel contando como campo com segurança conferida.
+    // Um número errado é pior do que número nenhum.
+    sst_aplicavel: comSst,
+    sst_apr_emitida: comSst && f.sstApr,
+    sst_pt_emitida: comSst && f.sstPt,
+    sst_dds_realizado: comSst && f.sstDds,
+    sst_treinamento_conferido: comSst && f.sstTreinamento,
+    sst_aso_conferido: comSst && f.sstAso,
+    sst_epi_conferido: comSst && f.sstEpi,
+    sst_responsavel: comSst ? f.sstResponsavel : null,
+    sst_observacao: comSst ? f.sstObservacao || null : null,
 
     equipe: f.equipe
       .filter((e) => e.colaborador.trim())
@@ -441,12 +463,11 @@ export function montarCorpo(f: EstadoDoFormulario): Record<string, unknown> {
         colaborador: e.colaborador,
         funcao: e.funcao || null,
         vinculo: e.vinculo,
-        codigo_clockify: e.codigoClockify || null,
         telefone: e.telefone || null,
         lider: e.lider,
       })),
 
-    epis: f.sstAplicavel
+    epis: comSst
       ? f.epis
           .filter((e) => e.epi.trim())
           .map((e) => ({
@@ -468,6 +489,7 @@ export function montarCorpo(f: EstadoDoFormulario): Record<string, unknown> {
           .filter((h) => h.cidade.trim())
           .map((h) => ({
             cidade: h.cidade,
+            hospedes: h.hospedes.trim() || null,
             hotel_id: h.hotelId || null,
             entrada: dataBRparaISO(h.entrada) || null,
             saida: dataBRparaISO(h.saida) || null,

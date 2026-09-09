@@ -289,11 +289,31 @@ function resolverAvarias(
   });
 }
 
+/**
+ * O catálogo de itens — por `catalogo_de_campo()`, e NÃO por
+ * `from("itens")`.
+ *
+ * ── POR QUE UMA FUNÇÃO, E NÃO A TABELA ──
+ *
+ * `itens` é do Controle de Estoque, e a política de SELECT dela exige
+ * `eh_usuario_estoque()` — isto é, `perfis.acesso_estoque`. Lendo a tabela
+ * direto, este sistema herdava essa exigência sem querer: dos 33 acessos
+ * ativos só 4 a tinham, e para os outros 29 — os DOIS DA DIREÇÃO e os 25
+ * solicitantes entre eles — a lista de equipamentos do formulário vinha
+ * VAZIA. Sem erro na tela: a RLS não recusa a consulta, devolve zero linha.
+ *
+ * `catalogo_de_campo()` é `security definer` e pergunta
+ * `eh_usuario_ativo()`, que é a regra certa aqui: quem está no sistema pode
+ * pedir equipamento, logo precisa ver o que existe. É o mesmo desenho que
+ * `itens_disponiveis_no_periodo()` já usava — esta leitura era a peça
+ * inconsistente.
+ *
+ * Dar `acesso_estoque` a todos resolveria o sintoma e criaria outro
+ * problema: colocaria 29 pessoas dentro do Controle de Estoque, que é outro
+ * sistema e outra decisão.
+ */
 async function lerCatalogo(sb: SupabaseClient): Promise<Item[]> {
-  const { data, error } = await sb
-    .from("itens")
-    .select("id,codigo,produto,categoria,estoque_atual,em_manutencao")
-    .order("produto", { ascending: true });
+  const { data, error } = await sb.rpc("catalogo_de_campo");
   if (error) {
     console.error("[dados] falha ao carregar o catálogo de itens", error);
     return [];

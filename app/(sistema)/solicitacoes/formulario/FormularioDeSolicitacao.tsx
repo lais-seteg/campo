@@ -465,17 +465,7 @@ export function FormularioDeSolicitacao({
                   placeholder="Nome e sobrenome"
                   list="lista-nomes-tecnicos"
                   value={linha.colaborador}
-                  onChange={(e) => {
-                    // Escolher um técnico conhecido já traz o código do
-                    // Clockify: digitar o mesmo dado duas vezes é onde ele
-                    // sai diferente.
-                    const nome = e.target.value;
-                    const tecnico = TECNICOS.find((t) => t.nome === nome.trim().toUpperCase());
-                    trocarEquipe(setF, indice, {
-                      colaborador: nome,
-                      ...(tecnico ? { codigoClockify: tecnico.codigo } : {}),
-                    });
-                  }}
+                  onChange={(e) => trocarEquipe(setF, indice, { colaborador: e.target.value })}
                 />
                 <input
                   className="form-control"
@@ -493,12 +483,10 @@ export function FormularioDeSolicitacao({
                     <option key={v}>{v}</option>
                   ))}
                 </select>
-                <input
-                  className="form-control"
-                  placeholder="Clockify"
-                  value={linha.codigoClockify}
-                  onChange={(e) => trocarEquipe(setF, indice, { codigoClockify: e.target.value })}
-                />
+                {/* Não há campo de Clockify por pessoa. O código que importa é
+                    o do PROJETO, no cabeçalho da solicitação, e ele vem da API
+                    do Clockify — pedi-lo de novo em cada linha da equipe era
+                    coletar o mesmo dado N vezes, que é onde ele sai diferente. */}
                 <input
                   className="form-control"
                   placeholder="Telefone"
@@ -740,6 +728,17 @@ export function FormularioDeSolicitacao({
               />
               {f.hospedagemNecessaria ? (
                 <div style={{ marginTop: ".6rem" }}>
+                  {/* Os nomes da EQUIPE desta solicitação, oferecidos como
+                      sugestão no campo "Hospedado(s)". Sai daqui e não de uma
+                      lista fixa: quem dorme no hotel é quem vai a este campo. */}
+                  <datalist id="lista-equipe-do-campo">
+                    {f.equipe
+                      .map((e) => e.colaborador.trim())
+                      .filter((nome) => nome.length > 0)
+                      .map((nome) => (
+                        <option key={nome} value={nome} />
+                      ))}
+                  </datalist>
                   {/* Uma linha por cidade: campo que passa por mais de uma
                       base dorme em mais de um lugar, e cada trecho tem
                       entrada, saída e diária própria. */}
@@ -753,6 +752,18 @@ export function FormularioDeSolicitacao({
                             placeholder="Cidade"
                             value={linha.cidade}
                             onChange={(e) => trocarHospedagem(setF, indice, { cidade: e.target.value })}
+                          />
+                          {/* QUEM dorme aqui. A linha é por cidade e pode
+                              abrigar mais de uma pessoa, então é texto livre —
+                              mas com a equipe já digitada como sugestão, para o
+                              nome sair igual nos dois lugares. Sem isto, o
+                              hotel recebia uma reserva sem saber para quem. */}
+                          <input
+                            className="form-control"
+                            placeholder="Hospedado(s)"
+                            list="lista-equipe-do-campo"
+                            value={linha.hospedes}
+                            onChange={(e) => trocarHospedagem(setF, indice, { hospedes: e.target.value })}
                           />
                           <select
                             className="form-control"
@@ -1125,7 +1136,14 @@ export function FormularioDeSolicitacao({
           </>
         )}
 
-        {/* ══ SST ══
+        {/* ══ SST — SÓ NO ADMINISTRATIVO ══
+            Saiu do pedido FINANCEIRO. SST é sobre o que vai a campo: EPI,
+            equipe exposta, risco do cliente. Um pedido financeiro é
+            prestação de contas — despesa, diária, dados de transferência —
+            e não tira ninguém do escritório. Perguntar segurança do
+            trabalho ali era pedir duas vezes o que o administrativo já
+            responde, e a segunda resposta é a que ninguém confere.
+
             UMA MARCA, desde a v3: se aplica ou não se aplica. Antes eram
             seis conferências (APR, PT, DDS, treinamento, ASO, EPI) mais o
             responsável, e o pedido só ficava "Conforme" com as seis
@@ -1136,6 +1154,7 @@ export function FormularioDeSolicitacao({
             A LISTA DE EPIs continua: ela não é uma marca de conferência, é
             o que sai fisicamente com a equipe, e é ela que aparece no
             checklist impresso. */}
+        {administrativo ? (
         <Secao titulo="SST · segurança do trabalho" icone={<Icone nome="escudo" tamanho={18} />}>
           <GrupoDeRadio
             nome="sst"
@@ -1217,6 +1236,7 @@ export function FormularioDeSolicitacao({
             </div>
           ) : null}
         </Secao>
+        ) : null}
 
         {/* ══ PREVISTO × REAL ══ */}
         <Secao titulo="Previsto × Real" icone={<Icone nome="grafico" tamanho={18} />}>

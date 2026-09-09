@@ -20,7 +20,7 @@ O formulário em papel tem três abas, e é delas que sai a base da tela:
 | Aba da planilha | Vira no sistema |
 |---|---|
 | **FINANCEIRO** | Solicitação do tipo *Financeiro*: despesas com prestação de contas (transporte, combustível, outros) com subtotais, dados da transferência e diárias de alimentação pagas mediante recibo (Seteg e temporário). |
-| **ADMINISTRATIVO** | Solicitação do tipo *Administrativo*: veículo (condutor, retirada e entrega), hospedagem (uma linha por cidade — campo que passa por mais de uma base dorme em mais de um lugar) e equipamento requisitado para campo. |
+| **ADMINISTRATIVO** | Solicitação do tipo *Administrativo*: veículo (condutor, retirada e entrega), hospedagem (uma linha por cidade, com **quem** dorme nela — campo que passa por mais de uma base dorme em mais de um lugar) e equipamento requisitado para campo. |
 | **TECNICOS** | Lista técnico ↔ código Clockify, oferecida como sugestão no campo "Código Clockify". |
 
 O quadro **CONFERÊNCIA** do papel (ENT. · TESTE · DEV. · TESTE · AVARIA?, com data e as
@@ -186,6 +186,11 @@ continua podendo ser digitado à mão** e nada mais no sistema depende disso. A 
 `200` com a lista vazia e o motivo, em vez de erro: integração fora do ar não pode virar tela
 quebrada.
 
+O código do Clockify é **do projeto**, e fica no cabeçalho da solicitação. A equipe **não** tem
+um campo por pessoa: pedir o mesmo dado uma vez por linha é onde ele sai diferente. A coluna
+`solicitacao_equipe.codigo_clockify` continua no banco com o que já foi gravado, e nada novo é
+escrito nela.
+
 A leitura dos projetos é a mesma do SGC: nome no padrão `#CODIGO (Nome do empreendimento)`
 vira **código** (o que entra no campo, sem o `#`) e **nome** (a dica na lista), e projeto cujo
 nome começa com `CANCELADO` ou `FINALIZADO` fica de fora. Hoje isso dá 58 projetos ativos de
@@ -299,6 +304,13 @@ referência fica **marcada em laranja** — a diferença passa a ser escolhida, 
 Só a Gestão altera os valores de referência (aba Cadastros → Valor da diária).
 
 ## SST no pedido de campo
+
+**Só no pedido administrativo.** SST é sobre o que vai a campo — EPI, equipe exposta, risco do
+cliente. Pedido financeiro é prestação de contas (despesa, diária, dados de transferência) e não
+tira ninguém do escritório; perguntar segurança do trabalho ali era coletar duas vezes o que o
+administrativo já responde, e a segunda resposta é a que ninguém confere. O envio zera o SST no
+financeiro de propósito: sem isso, o padrão "se aplica" gravaria todo pedido financeiro como
+campo com SST e o Painel contaria um número errado — que é pior do que número nenhum.
 
 Não é cadastro de pessoa: é a **conferência que o líder faz antes de sair**, e que sai impressa
 no checklist assinado. Seis itens — APR, Permissão de Trabalho, DDS, treinamentos (NR), ASO e
@@ -477,6 +489,19 @@ uma segunda fonte da verdade.
 11. `supabase/12_liberacao_da_folga.sql` — a folga vira decisão do administrativo: separa conflito
     real de "só a folga", deixa o pedido nascer aguardando liberação e cria
     `liberar_folga_equipamento()`.
+12. `supabase/13_catalogo_e_hospede.sql` — `catalogo_de_campo()` (a lista de equipamentos vinha
+    **vazia** para 29 dos 33 acessos, ver abaixo) e a coluna `solicitacao_hospedagens.hospedes`.
+
+**O catálogo de equipamentos não passa por `from("itens")`.** A política de SELECT de `itens` é do
+Controle de Estoque e exige `eh_usuario_estoque()` — isto é, `perfis.acesso_estoque`. Lendo a
+tabela direto, este sistema herdava essa exigência sem querer: só 4 dos 33 acessos ativos a tinham,
+e para os outros 29 — **os dois da Direção e os 25 solicitantes entre eles** — o campo "Equipamento
+requisitado" não tinha o que mostrar. Sem erro na tela: a RLS não recusa a consulta, devolve zero
+linha. `catalogo_de_campo()` é `security definer` e pergunta `eh_usuario_ativo()`, que é a regra
+certa aqui — quem está no sistema pode pedir equipamento, logo precisa ver o que existe. Era o
+mesmo desenho que `itens_disponiveis_no_periodo()` já usava; `lerCatalogo` era a peça
+inconsistente. Dar `acesso_estoque` a todos resolveria o sintoma e colocaria 29 pessoas dentro de
+outro sistema.
 9. `supabase/03_funcao_acesso.sql` — a função que cria acesso (sem senha nenhuma dentro).
    Depois dela, `supabase/03_acessos.sql` (**fora do Git**) cria os acessos com as senhas reais
    e destrói a função ao terminar.

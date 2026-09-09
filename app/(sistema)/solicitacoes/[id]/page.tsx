@@ -220,11 +220,14 @@ export default async function PaginaDeDetalhe({ params }: { params: { id: string
         {s.hospedagens.length ? (
           <Bloco titulo="2 · Hospedagem">
             <TabelaDeLeitura
-              colunas={["Cidade", "Hotel / pousada", "Entrada", "Saída", "Dia(s)", "Diária prevista", "Diária real", "Total"]}
+              colunas={["Cidade", "Hospedado(s)", "Hotel / pousada", "Entrada", "Saída", "Dia(s)", "Diária prevista", "Diária real", "Total"]}
             >
               {s.hospedagens.map((h) => (
                 <tr key={h.id}>
                   <td>{h.cidade || "—"}</td>
+                  {/* QUEM dorme aqui. Com a equipe dividida em duas bases, a
+                      reserva sem nome não diz para quem é. */}
+                  <td>{h.hospedes || "—"}</td>
                   <td>{nomeDoHotel(h, hotelPorId)}</td>
                   <td>{dataISOparaBR(h.entrada) || "—"}</td>
                   <td>{dataISOparaBR(h.saida) || "—"}</td>

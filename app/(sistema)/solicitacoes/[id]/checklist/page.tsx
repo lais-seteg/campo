@@ -50,11 +50,15 @@ export default async function PaginaDeChecklist({ params }: { params: { id: stri
     );
   }
 
+  // O nome de quem dorme entra na folha impressa: é ela que vai com a
+  // equipe e é por ela que se confere, no balcão do hotel, se a reserva é
+  // da pessoa que está ali.
   const hospedagens = s.hospedagens
-    .map(
-      (h) =>
-        `${h.cidade} (${dataISOparaBR(h.entrada) || "?"} a ${dataISOparaBR(h.saida) || "?"}, ${h.dias ?? 0}d)`
-    )
+    .map((h) => {
+      const quem = h.hospedes ? ` — ${h.hospedes}` : "";
+      const periodo = `${dataISOparaBR(h.entrada) || "?"} a ${dataISOparaBR(h.saida) || "?"}, ${h.dias ?? 0}d`;
+      return `${h.cidade} (${periodo})${quem}`;
+    })
     .join(" · ");
 
   const locadora =

@@ -68,6 +68,8 @@ export interface LinhaDeEquipe {
 
 export interface LinhaDeHospedagem {
   cidade: string;
+  /** Quem dorme nesta cidade. Opcional: nem sempre se sabe na abertura. */
+  hospedes: string | null;
   hotel_id: string | null;
   entrada: string | null;
   saida: string | null;
@@ -514,8 +516,14 @@ function validarHospedagem(linha: unknown): Validada<LinhaDeHospedagem> {
   const diaria = dinheiro(l.diaria_prevista ?? 0);
   if (diaria === null) return `Valor de diária inválido em ${cidade}.`;
 
+  // Não é obrigatório: na abertura do pedido a escala pode não estar
+  // fechada, e travar o salvamento por isso empurraria a pessoa a inventar
+  // um nome. Fica em branco e a logística preenche depois.
+  const hospedes = texto(l.hospedes);
+
   return {
     cidade: maiusculas(cidade),
+    hospedes: hospedes ? maiusculas(hospedes) : null,
     hotel_id: hotelId,
     entrada,
     saida,
