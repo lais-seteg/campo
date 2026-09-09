@@ -20,13 +20,23 @@
 //  OBSERVAÇÕES — em texto, o que dispensa o sanitizador de HTML que a OC
 //  precisou ter.
 //
-//  ── AS MARCAS SÃO ENCENADAS ATÉ O REGISTRO ──
+//  ── AS MARCAS SÃO ENCENADAS ATÉ O REGISTRO, MAS NÃO SE PERDEM ──
 //
-//  Clicar num quadradinho não grava nada sozinho. As marcas ficam na tela
-//  até "Registrar", que manda tudo numa transação — a mesma de sempre
-//  (`registrar_entrega_solicitacao` / `..._devolucao_...`). Gravar clique
-//  por clique deixaria o estoque a meio caminho quando a conexão caísse, e
-//  foi justamente disso que a v3 fugiu.
+//  Clicar num quadradinho não dá baixa em nada. As marcas de VERDADE
+//  (`entregue`, `devolvido`, `avaria`) são escritas por "Registrar", que
+//  manda tudo numa transação — `registrar_entrega_solicitacao` /
+//  `..._devolucao_...`. Gravar clique por clique deixaria o estoque a meio
+//  caminho quando a conexão caísse, e foi justamente disso que a v3 fugiu.
+//
+//  Só que "não gravar" custava o trabalho de quem conferia: doze itens
+//  marcados, duas assinaturas, o popup fechado antes do registro — e os
+//  doze de novo na próxima vez.
+//
+//  Então há duas coisas, e é a distinção que importa: o RASCUNHO
+//  (`solicitacoes.checklist_rascunho`, supabase/17) sobe sozinho poucos
+//  segundos depois de cada clique e não move estoque nenhum; o REGISTRO
+//  continua sendo o mesmo ato atômico de sempre, e é ele que zera o
+//  rascunho. Fechar a janela agora custa, no máximo, os últimos segundos.
 //
 //  ── ASSINAR É OUTRO ATO, E É AGORA ──
 //
@@ -37,7 +47,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAvisos } from "@/app/components/Avisos";
 import { CampoMascarado } from "@/app/components/Campos";
 import { Assinatura, type ControleDaAssinatura } from "@/app/components/Assinatura";
@@ -46,8 +56,10 @@ import { dataBRparaISO, dataISOparaBR, formatarNumeroBR, hojeISO, parseMoeda } f
 import {
   GRAVIDADES_AVARIA,
   PROVIDENCIAS_AVARIA,
+  type ChecklistRascunho,
   type GravidadeAvaria,
   type Item,
+  type LinhaDoRascunho,
   type MomentoAssinatura,
   type ProvidenciaAvaria,
   type SolicitacaoDeLista,
@@ -76,6 +88,49 @@ interface Linha {
   fornecedor: string;
 }
 
+/** Quanto tempo depois do último clique o rascunho sobe. Curto o bastante
+ *  para não perder trabalho, longo o bastante para "marcar todos" de doze
+ *  itens ser uma gravação e não doze. */
+const ESPERA_DO_RASCUNHO = 1500;
+
+/**
+ * Lê o rascunho guardado, se ele serve para ESTA conferência.
+ *
+ * Três motivos para não servir, e todos terminam do mesmo jeito — ignorar e
+ * começar do banco, que é o estado verdadeiro:
+ *
+ *   · não é objeto (coluna nova, valor estranho, formato antigo);
+ *   · é de OUTRO MOMENTO: o rascunho da retirada não diz nada sobre a
+ *     devolução, e aplicá-lo ali marcaria como devolvido o que a pessoa
+ *     havia marcado como retirado;
+ *   · fala de itens que não estão mais no pedido. Aí só as linhas que
+ *     casam por id são aproveitadas, e as outras entram do banco.
+ *
+ * É de propósito que isto seja tolerante: rascunho é conveniência. Um
+ * rascunho ilegível custa marcar de novo; um rascunho aplicado errado
+ * custa um registro errado no estoque.
+ */
+function rascunhoUtil(bruto: unknown, momento: MomentoAssinatura): Map<string, LinhaDoRascunho> | null {
+  if (!bruto || typeof bruto !== "object" || Array.isArray(bruto)) return null;
+  const r = bruto as Partial<ChecklistRascunho>;
+  if (r.momento !== momento || !Array.isArray(r.linhas)) return null;
+
+  const porId = new Map<string, LinhaDoRascunho>();
+  for (const l of r.linhas) {
+    if (l && typeof l === "object" && typeof (l as LinhaDoRascunho).id === "string") {
+      porId.set((l as LinhaDoRascunho).id, l as LinhaDoRascunho);
+    }
+  }
+  return porId.size ? porId : null;
+}
+
+function dataDoRascunho(bruto: unknown, momento: MomentoAssinatura): string | null {
+  if (!bruto || typeof bruto !== "object" || Array.isArray(bruto)) return null;
+  const r = bruto as Partial<ChecklistRascunho>;
+  if (r.momento !== momento || typeof r.data !== "string") return null;
+  return dataBRparaISO(r.data) ? r.data : null;
+}
+
 export function ChecklistDeConferencia({
   solicitacao: s,
   catalogo,
@@ -98,38 +153,96 @@ export function ChecklistDeConferencia({
   const momento: MomentoAssinatura = entrega ? "Retirada" : "Devolução";
   const encerrado = !!s.devolucao_data;
 
-  const [data, setData] = useState(() => dataISOparaBR(hojeISO()));
+  // A data também vem do rascunho: quem conferiu ontem e não registrou
+  // não quer ver a data de hoje na folha ao voltar.
+  const [data, setData] = useState(
+    () => dataDoRascunho(s.checklist_rascunho, momento) ?? dataISOparaBR(hojeISO())
+  );
   const [ocupado, setOcupado] = useState(false);
 
   const itemPorId = new Map(catalogo.map((i) => [i.id, i]));
-  const [linhas, setLinhas] = useState<Linha[]>(() =>
-    s.equipamentos.map((e) => {
+  const [linhas, setLinhas] = useState<Linha[]>(() => {
+    const guardado = rascunhoUtil(s.checklist_rascunho, momento);
+    return s.equipamentos.map((e) => {
       const item = e.item_id ? itemPorId.get(e.item_id) : undefined;
       const avariaAberta = s.avarias.find((a) => a.solicitacao_equipamento_id === e.id);
+      // O BANCO é a base; o rascunho só cobre por cima o que a pessoa
+      // mexeu. Nesta ordem, e não ao contrário: item acrescentado ao pedido
+      // depois de o rascunho ser salvo entra na lista mesmo assim, em vez
+      // de sumir por não estar no rascunho.
+      const r = guardado?.get(e.id);
       return {
         id: e.id,
         nome: item ? `${item.produto} · ${item.codigo}` : (e.descricao ?? "Item fora do catálogo"),
         quantidade: e.quantidade,
-        marcado: entrega ? e.entregue : e.devolvido,
-        teste: entrega ? e.teste_entrega : e.teste_devolucao,
-        avaria: e.avaria,
-        observacao: e.avaria_obs ?? "",
-        gravidade: avariaAberta?.gravidade ?? "Leve",
-        custo: avariaAberta ? formatarNumeroBR(avariaAberta.custo_estimado) : "",
-        providencia: avariaAberta?.providencia ?? "Em análise",
-        fornecedor: avariaAberta?.fornecedor ?? "",
+        marcado: r?.marcado ?? (entrega ? e.entregue : e.devolvido),
+        teste: r?.teste ?? (entrega ? e.teste_entrega : e.teste_devolucao),
+        avaria: r?.avaria ?? e.avaria,
+        observacao: r?.observacao ?? e.avaria_obs ?? "",
+        gravidade: (r?.gravidade as GravidadeAvaria) ?? avariaAberta?.gravidade ?? "Leve",
+        custo: r?.custo ?? (avariaAberta ? formatarNumeroBR(avariaAberta.custo_estimado) : ""),
+        providencia: (r?.providencia as ProvidenciaAvaria) ?? avariaAberta?.providencia ?? "Em análise",
+        fornecedor: r?.fornecedor ?? avariaAberta?.fornecedor ?? "",
       };
-    })
-  );
+    });
+  });
 
-  function trocar(indice: number, mudanca: Partial<Linha>) {
+  // ── O RASCUNHO SOBE SOZINHO ──
+  //
+  // `sujo` e não um efeito em cima de `linhas`: sem ele, a primeira
+  // renderização já gravaria um rascunho igual ao banco, em todo pedido que
+  // alguém abrisse — inclusive os que a pessoa só queria ver.
+  const [sujo, setSujo] = useState(false);
+  const [salvandoRascunho, setSalvandoRascunho] = useState(false);
+  const [salvoEm, setSalvoEm] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!sujo || encerrado || !podeConferir) return;
+
+    const relogio = setTimeout(() => {
+      const corpo: ChecklistRascunho = {
+        momento,
+        data,
+        salvo_em: new Date().toISOString(),
+        linhas: linhas.map((l) => ({
+          id: l.id,
+          marcado: l.marcado,
+          teste: l.teste,
+          avaria: l.avaria,
+          observacao: l.observacao,
+          gravidade: l.gravidade,
+          custo: l.custo,
+          providencia: l.providencia,
+          fornecedor: l.fornecedor,
+        })),
+      };
+      setSalvandoRascunho(true);
+      patch(`/api/solicitacoes/${s.id}/checklist`, { rascunho: corpo })
+        .then(() => {
+          setSujo(false);
+          setSalvoEm(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+        })
+        // Falha aqui NÃO vira aviso vermelho na tela: o rascunho é
+        // conveniência, e um alerta a cada oscilação de rede assustaria por
+        // algo que não quebrou nada — o registro continua possível. Fica no
+        // console, e `sujo` continua ligado para a próxima tentativa.
+        .catch((erro) => console.error("[checklist] rascunho não salvo", erro))
+        .finally(() => setSalvandoRascunho(false));
+    }, ESPERA_DO_RASCUNHO);
+
+    return () => clearTimeout(relogio);
+  }, [sujo, linhas, data, momento, s.id, encerrado, podeConferir]);
+
+  const trocar = useCallback((indice: number, mudanca: Partial<Linha>) => {
     setLinhas((atual) => atual.map((l, i) => (i === indice ? { ...l, ...mudanca } : l)));
-  }
+    setSujo(true);
+  }, []);
 
   /** Marcar todos de uma vez: numa retirada de doze itens, conferidos e
    *  testados, doze pares de cliques é onde alguém desiste de conferir. */
   function marcarTodos() {
     setLinhas((atual) => atual.map((l) => ({ ...l, marcado: true, teste: true })));
+    setSujo(true);
   }
 
   async function registrar() {
@@ -169,6 +282,23 @@ export function ChecklistDeConferencia({
         ),
       });
 
+      // ── O RASCUNHO MORRE AQUI ──
+      //
+      // As marcas viraram fato: estão em `solicitacao_equipamentos` e o
+      // estoque se moveu. Um rascunho sobrevivente passaria a MENTIR — na
+      // próxima abertura ele cobriria por cima o que o banco registrou, e a
+      // tela mostraria a versão de antes do registro.
+      //
+      // Fora do `try` do registro de propósito: se a limpeza falhar, o
+      // registro já aconteceu e não se desfaz. `momento` também já mudou
+      // (retirada → devolução), então o rascunho velho seria descartado por
+      // `rascunhoUtil` de qualquer jeito. Por isso a falha só vai ao
+      // console.
+      setSujo(false);
+      patch(`/api/solicitacoes/${s.id}/checklist`, { rascunho: null }).catch((erro) =>
+        console.error("[checklist] rascunho não limpo depois do registro", erro)
+      );
+
       if (!entrega && r.pendentes.length) {
         avisar(`Faltou voltar: ${r.pendentes.join(", ")}. A solicitação segue em campo.`, "erro");
       } else if (entrega) {
@@ -204,6 +334,19 @@ export function ChecklistDeConferencia({
               <button className="btn btn-ghost btn-sm" type="button" onClick={marcarTodos}>
                 Marcar todos
               </button>
+              {/* O estado do rascunho, dito e não escondido: sem isto, "as
+                  marcas não se perdem" é uma promessa que a pessoa não tem
+                  como conferir — e quem não confia fecha a janela com medo
+                  e marca tudo de novo por precaução. */}
+              <span className="chk-rascunho" aria-live="polite">
+                {salvandoRascunho
+                  ? "Guardando…"
+                  : sujo
+                    ? "Alterações a guardar"
+                    : salvoEm
+                      ? `Guardado ${salvoEm}`
+                      : "As marcas são guardadas sozinhas"}
+              </span>
               <button
                 className="btn btn-primary btn-sm"
                 type="button"

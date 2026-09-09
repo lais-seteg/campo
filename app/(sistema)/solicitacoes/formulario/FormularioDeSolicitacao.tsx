@@ -889,7 +889,19 @@ export function FormularioDeSolicitacao({
                     className="btn btn-ghost btn-sm"
                     type="button"
                     style={{ marginTop: ".4rem" }}
-                    onClick={() => setF((a) => ({ ...a, hospedagens: [...a.hospedagens, linhaDeHospedagemVazia()] }))}
+                    onClick={() =>
+                      setF((a) => ({
+                        ...a,
+                        // A cidade nova herda as datas do CAMPO. É o caso
+                        // normal — dorme-se lá enquanto o campo dura — e
+                        // deixar em branco era o que fazia a folha impressa
+                        // sair com "(? a ?, 0d)".
+                        hospedagens: [
+                          ...a.hospedagens,
+                          linhaDeHospedagemVazia(a.periodoInicio, a.periodoFim),
+                        ],
+                      }))
+                    }
                   >
                     + Adicionar cidade
                   </button>

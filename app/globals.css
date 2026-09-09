@@ -422,15 +422,15 @@ button,input,select,textarea{font-family:inherit}
    Então ela pede o que precisa e sai do rateio. Os números vêm da conta do
    pior caso de cada tipo:
 
-     `col-acoes`       até 4 ícones de 27px + 3 vãos + o padding da célula.
-                       Solicitações é o pior caso: olho, lápis, checklist e
-                       conferência.
+     `col-acoes`       até 5 ícones de 27px + 4 vãos + o padding da célula.
+                       Solicitações é o pior caso: olho, lápis, checklist,
+                       conferência e a chave inglesa do ajuste em campo.
      `col-acoes-fila`  o olho MAIS o Aprovar/Recusar do líder, que são
                        botões com texto — os únicos que sobraram.
 
    `flex-shrink:0` nos botões (abaixo) garante que, se a tela for estreita
    demais, quem cede é a tabela rolando — não o desenho do ícone. */
-.col-acoes{width:150px;white-space:nowrap;text-align:center}
+.col-acoes{width:180px;white-space:nowrap;text-align:center}
 .col-acoes-fila{width:220px;white-space:nowrap;text-align:center}
 .table-actions{display:flex;gap:.3rem;justify-content:center;flex-wrap:nowrap}
 .table-actions>*{flex-shrink:0}
@@ -1081,10 +1081,10 @@ td.table-actions.acoes-fila{flex-wrap:nowrap;justify-content:center;gap:.3rem}
   .pagination-per-page{margin:0}
 
   /* No toque o ícone cresce para 30px (abaixo), então a coluna de ações
-     cresce com ele: quatro ícones de 30px mais os vãos não caberiam nos
-     150px do desktop, e o que não cabe volta a se sobrepor. A tabela rola
+     cresce com ele: cinco ícones de 30px mais os vãos não caberiam nos
+     180px do desktop, e o que não cabe volta a se sobrepor. A tabela rola
      na horizontal se não couber, que é recuperável. */
-  .col-acoes{width:160px}
+  .col-acoes{width:195px}
   .btn-icon{width:30px;height:30px}
 
   .modal-overlay{padding:.5rem}
@@ -1185,6 +1185,23 @@ td.table-actions.acoes-fila{flex-wrap:nowrap;justify-content:center;gap:.3rem}
 .chk-dados{width:100%;border-collapse:collapse;margin-bottom:.8rem}
 .chk-dados th,.chk-dados td{border:1px solid #bbb;padding:.28rem .45rem;text-align:left;font-size:.74rem;color:#111}
 .chk-dados th{background:#f1f1f1;font-weight:700;width:7.5rem;white-space:nowrap}
+
+/* ── UMA LINHA POR ITEM DENTRO DA CÉLULA ──
+   As células de Hospedagem e Equipe listam várias coisas, e saíam numa
+   frase só separada por "·": três cidades viravam um parágrafo, e achar a
+   sua exigia ler as outras. Quem lê esta folha está no balcão do hotel ou
+   no balcão do estoque, procurando UMA linha.
+
+   Lista sem marcador e sem recuo — o marcador competiria com a borda da
+   tabela, e o recuo desalinharia da coluna ao lado. O separador visual é a
+   própria quebra de linha, e o "·" entre os pedaços de uma linha só. */
+.chk-lista{list-style:none;margin:0;padding:0}
+.chk-lista li{display:flex;flex-wrap:wrap;gap:.1rem .45rem;line-height:1.35}
+.chk-lista li+li{margin-top:.15rem;padding-top:.15rem;border-top:1px dotted #ddd}
+.chk-lista strong{font-weight:700}
+/* O "·" nasce do CSS e não do texto: assim ele nunca sobra sozinho no fim
+   quando o último pedaço da linha não existe (cidade sem hóspede). */
+.chk-lista span::before{content:"· "; color:#888}
 
 .chk-itens{width:100%;border-collapse:collapse}
 .chk-itens th,.chk-itens td{border:1px solid #999;padding:.3rem .35rem;text-align:center;font-size:.72rem;color:#111}
@@ -1671,6 +1688,14 @@ input.form-control.sst-na{color:var(--text-muted);font-weight:700}
 .chk-acoes-linha>strong{font-size:.82rem}
 .chk-acoes-data{display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--text-secondary)}
 .chk-acoes-data .form-control{width:8.5rem}
+/* O estado do rascunho. Discreto de propósito: é confirmação, não alerta —
+   quem está conferindo não pode ser interrompido por algo que funcionou.
+   `margin-left:auto` empurra para o fim da linha, longe dos botões, para
+   não parecer um deles. */
+.chk-rascunho{
+  margin-left:auto;font-size:.66rem;color:var(--text-muted);
+  font-style:italic;white-space:nowrap
+}
 
 /* O quadradinho clicável é o MESMO desenho do impresso — muda o cursor e o
    foco, não a forma. Trocar a aparência faria a tela e o papel contarem

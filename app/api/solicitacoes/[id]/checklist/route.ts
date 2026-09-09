@@ -1,11 +1,30 @@
 // ═══════════════════════════════════════════════════════════════════════
 //  PATCH /api/solicitacoes/[id]/checklist
 //
-//  Corpo: { observacoes: string }
+//  Corpo: { observacoes?: string, rascunho?: objeto | null }
+//
+//  Duas coisas da folha que não movem estoque, e por isso podem ser
+//  gravadas a qualquer momento. Cada chave é opcional e só o que vem é
+//  gravado — a tela salva a observação quando a pessoa aperta Salvar, e o
+//  rascunho sozinho, alguns instantes depois de cada clique.
+//
+//  ── AS OBSERVAÇÕES ──
 //
 //  A área editável da folha — o que o formulário não previu e a pessoa
 //  precisa escrever à mão antes de imprimir: "o tripé foi sem a bolsa",
 //  "cliente exige crachá na portaria".
+//
+//  ── O RASCUNHO ──
+//
+//  As marcas do checklist ainda não registradas (supabase/17). Elas eram
+//  só estado de tela: quem conferia doze itens, assinava e fechava o popup
+//  antes de registrar, marcava os doze de novo.
+//
+//  Gravar as marcas DE VERDADE aqui seria o erro: `entregue` e `devolvido`
+//  são o que dá baixa e entrada no estoque, e quem as escreve é
+//  `registrar_entrega_solicitacao` / `..._devolucao_...`, numa transação
+//  só. Isto grava o RASCUNHO — a tela guardada, que não move nada e que o
+//  registro zera.
 //
 //  ── TEXTO, E NÃO HTML ──
 //
@@ -62,6 +81,9 @@ export async function GET(_request: NextRequest, { params }: Contexto) {
 /** Generoso para observação de campo e longe de virar depósito de texto. */
 const OBSERVACOES_MAX = 4000;
 
+/** Cem itens de checklist com avaria descrita cabem folgados nisto. */
+const RASCUNHO_MAX = 200_000;
+
 interface Contexto {
   params: { id: string };
 }
@@ -77,17 +99,47 @@ export async function PATCH(request: NextRequest, { params }: Contexto) {
     return NextResponse.json({ error: "Corpo inválido." }, { status: 400 });
   }
 
-  const bruto = (corpo as { observacoes?: unknown })?.observacoes;
-  if (bruto !== null && bruto !== undefined && typeof bruto !== "string") {
-    return NextResponse.json({ error: "Observações inválidas." }, { status: 400 });
+  const c = (corpo as { observacoes?: unknown; rascunho?: unknown }) ?? {};
+  const mudancas: Record<string, unknown> = {};
+
+  if ("observacoes" in c) {
+    if (c.observacoes !== null && typeof c.observacoes !== "string") {
+      return NextResponse.json({ error: "Observações inválidas." }, { status: 400 });
+    }
+    const texto = typeof c.observacoes === "string" ? c.observacoes.trim() : "";
+    if (texto.length > OBSERVACOES_MAX) {
+      return NextResponse.json(
+        { error: `As observações passam de ${OBSERVACOES_MAX} caracteres.` },
+        { status: 400 }
+      );
+    }
+    mudancas.checklist_observacoes = texto || null;
   }
 
-  const texto = typeof bruto === "string" ? bruto.trim() : "";
-  if (texto.length > OBSERVACOES_MAX) {
-    return NextResponse.json(
-      { error: `As observações passam de ${OBSERVACOES_MAX} caracteres.` },
-      { status: 400 }
-    );
+  if ("rascunho" in c) {
+    // `null` é o gesto de LIMPAR — é o que a tela manda depois de
+    // registrar a conferência, quando as marcas viraram fato e o rascunho
+    // deixou de ter sentido.
+    if (c.rascunho === null) {
+      mudancas.checklist_rascunho = null;
+    } else if (typeof c.rascunho !== "object" || Array.isArray(c.rascunho)) {
+      return NextResponse.json({ error: "Rascunho inválido." }, { status: 400 });
+    } else {
+      // O CONTEÚDO não é validado campo por campo de propósito: é a tela
+      // guardada, o formato é o do formulário e muda com ele. Quem valida
+      // é o cliente na hora de aplicar — rascunho de formato velho é
+      // descartado lá. O que se valida aqui é o TAMANHO, para a coluna não
+      // virar depósito.
+      const tamanho = JSON.stringify(c.rascunho).length;
+      if (tamanho > RASCUNHO_MAX) {
+        return NextResponse.json({ error: "Rascunho do checklist grande demais." }, { status: 400 });
+      }
+      mudancas.checklist_rascunho = c.rascunho;
+    }
+  }
+
+  if (Object.keys(mudancas).length === 0) {
+    return NextResponse.json({ error: "Nada para salvar." }, { status: 400 });
   }
 
   const solicitacao = await carregarSolicitacao(autorizacao.usuario.accessToken, params.id);
@@ -106,17 +158,14 @@ export async function PATCH(request: NextRequest, { params }: Contexto) {
   const sb = clienteDoUsuario(autorizacao.usuario.accessToken);
 
   try {
-    const { error } = await sb
-      .from("solicitacoes")
-      .update({ checklist_observacoes: texto || null })
-      .eq("id", params.id);
+    const { error } = await sb.from("solicitacoes").update(mudancas).eq("id", params.id);
     if (error) throw error;
 
     return NextResponse.json({ ok: true });
   } catch (erro) {
     console.error(`[PATCH /api/solicitacoes/${params.id}/checklist]`, erro);
     return NextResponse.json(
-      { error: mensagemDeErro(erro, "salvar as observações do checklist") },
+      { error: mensagemDeErro(erro, "salvar a folha do checklist") },
       { status: statusDoErro(erro) }
     );
   }

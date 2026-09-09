@@ -15,7 +15,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { tabelaNaoExiste } from "@/lib/erros";
+import { colunaNaoExiste, tabelaNaoExiste } from "@/lib/erros";
 import type { CorpoDeSolicitacao } from "@/app/api/solicitacoes/validacao";
 
 /** As colunas de `solicitacoes` — o corpo validado menos as listas filhas. */
@@ -36,23 +36,50 @@ export function cabecalhoDe(dados: CorpoDeSolicitacao) {
 /**
  * Apaga as linhas-filhas que a edição reescreve.
  *
- * Equipamento JÁ ENTREGUE fica: ele está fisicamente com a equipe, e a
- * linha é a obrigação de devolver. Apagá-la faria a devolução não ter o
- * que conferir e o estoque nunca receber o item de volta.
+ * ── TRÊS COISAS NÃO SÃO APAGADAS, E É O MESMO MOTIVO ──
+ *
+ * A edição reescreve o que veio DO FORMULÁRIO. O que não veio do formulário
+ * não é dela para reescrever:
+ *
+ *   · Equipamento JÁ ENTREGUE fica: ele está fisicamente com a equipe, e a
+ *     linha é a obrigação de devolver. Apagá-la faria a devolução não ter o
+ *     que conferir e o estoque nunca receber o item de volta.
+ *
+ *   · Diária e despesa ACRESCENTADAS em campo ficam (supabase/17). Elas
+ *     entraram por outro ato, com motivo e histórico próprios, depois de o
+ *     formulário ter sido enviado. Sem esta exceção, a diária lançada hoje
+ *     porque o campo estendeu desaparecia na próxima correção de qualquer
+ *     outro campo do pedido — e num pedido do tipo Administrativo, que não
+ *     envia diárias, ela era apagada e nunca reescrita.
+ *
+ * Quem monta o formulário filtra as mesmas linhas para fora
+ * (`carregarNoFormulario`), senão elas seriam reenviadas e duplicariam.
  */
 export async function limparFilhas(sb: SupabaseClient, id: string): Promise<void> {
-  const tabelas = [
-    "solicitacao_equipe",
-    "solicitacao_sst_epis",
-    "solicitacao_hospedagens",
-    "solicitacao_despesas",
-    "solicitacao_diarias",
-  ];
+  const tabelas = ["solicitacao_equipe", "solicitacao_sst_epis", "solicitacao_hospedagens"];
 
   for (const tabela of tabelas) {
     const { error } = await sb.from(tabela).delete().eq("solicitacao_id", id);
     // Tabela da v2 que ainda não existe não é erro fatal: o sistema
     // funciona sem ela, avisando o que está desligado.
+    if (error && !tabelaNaoExiste(error)) throw error;
+  }
+
+  for (const tabela of ["solicitacao_despesas", "solicitacao_diarias"]) {
+    const { error } = await sb
+      .from(tabela)
+      .delete()
+      .eq("solicitacao_id", id)
+      // `.is(...)` e não `.eq(..., null)`: em SQL, `= null` nunca é
+      // verdadeiro e a limpeza não apagaria linha nenhuma.
+      .is("acrescentado_em", null);
+    // Coluna ainda não criada (deploy anterior a supabase/17) volta ao
+    // comportamento antigo: apaga tudo, que é o que fazia antes.
+    if (error && colunaNaoExiste(error)) {
+      const { error: erroSemFiltro } = await sb.from(tabela).delete().eq("solicitacao_id", id);
+      if (erroSemFiltro && !tabelaNaoExiste(erroSemFiltro)) throw erroSemFiltro;
+      continue;
+    }
     if (error && !tabelaNaoExiste(error)) throw error;
   }
 

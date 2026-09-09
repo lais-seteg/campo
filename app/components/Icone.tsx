@@ -177,6 +177,18 @@ const DESENHOS = {
       <polyline points="12 6 12 12 16 14" />
     </>
   ),
+  /**
+   * A CHAVE INGLESA — o ajuste do campo em andamento.
+   *
+   * Ferramenta e não "+": o "+" diz "adicionar mais um", e o que se faz
+   * aqui é CONSERTAR o pedido enquanto o campo acontece — a diária que
+   * faltou porque estendeu, o material que quebrou, o táxi que ninguém
+   * previu. Chave inglesa é o desenho universal de "mexer no que já está
+   * montado", e é o gesto certo: o pedido está de pé e continua de pé.
+   */
+  ferramenta: (
+    <path d="M14.7 6.3a4 4 0 0 0 5 5l-9.4 9.4a2.8 2.8 0 0 1-4-4L15.7 7.3M14.7 6.3l2.6-2.6a4 4 0 0 1 3 8.6" />
+  ),
 } as const;
 
 export type NomeDeIcone = keyof typeof DESENHOS;

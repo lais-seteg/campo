@@ -245,14 +245,28 @@ export function linhaDeEquipeVazia(): LinhaDeEquipeForm {
   };
 }
 
-export function linhaDeHospedagemVazia(): LinhaDeHospedagemForm {
+/**
+ * A cidade nova já nasce com as DATAS DO CAMPO.
+ *
+ * Nasciam vazias, e ficavam vazias: entrada e saída são opcionais no banco,
+ * ninguém era obrigado a preenchê-las, e o resultado aparecia na folha
+ * impressa do checklist como "FORTALEZA (? a ?, 0d)" — que não serve para
+ * conferir uma reserva no balcão do hotel, que é justamente para isso que a
+ * folha existe.
+ *
+ * O padrão certo é o período do campo, porque é o caso normal: a pessoa
+ * dorme lá enquanto o campo dura. Quem chega antes ou sai depois corrige a
+ * data — corrigir uma data preenchida é mais fácil do que lembrar de
+ * preencher duas vazias.
+ */
+export function linhaDeHospedagemVazia(inicio = "", fim = ""): LinhaDeHospedagemForm {
   return {
     chave: novaChave(),
     cidade: "",
     hospedes: "",
     hotelId: "",
-    entrada: "",
-    saida: "",
+    entrada: inicio,
+    saida: fim,
     diaria: "",
   };
 }
@@ -347,22 +361,35 @@ export function formularioDeSolicitacao(s: SolicitacaoDeLista): EstadoDoFormular
       .filter((e) => !e.entregue && e.item_id)
       .map((e) => ({ chave: novaChave(), itemId: e.item_id ?? "", quantidade: String(e.quantidade) })),
 
-    despesas: s.despesas.map((d) => ({
-      chave: novaChave(),
-      grupo: d.grupo,
-      descricao: d.descricao ?? "",
-      valor: formatarNumeroBR(d.valor),
-    })),
+    // ── O ACRÉSCIMO EM CAMPO NÃO ENTRA NO FORMULÁRIO ──
+    //
+    // Diária e despesa acrescentadas depois (supabase/17) não são apagadas
+    // pela edição — `limparFilhas` as protege, porque entraram por outro
+    // ato, com motivo e histórico próprios. Se elas também aparecessem
+    // aqui, o formulário as reenviaria e cada edição criaria uma cópia.
+    //
+    // O mesmo desenho do equipamento já entregue, filtrado acima: o que a
+    // edição não reescreve, ela não mostra.
+    despesas: s.despesas
+      .filter((d) => !d.acrescentado_em)
+      .map((d) => ({
+        chave: novaChave(),
+        grupo: d.grupo,
+        descricao: d.descricao ?? "",
+        valor: formatarNumeroBR(d.valor),
+      })),
 
-    diarias: s.diarias.map((d) => ({
-      chave: novaChave(),
-      colaborador: d.colaborador,
-      vinculo: d.vinculo,
-      tipoDiaria: d.tipo_diaria,
-      dias: String(d.dias),
-      valor: formatarNumeroBR(d.valor_unitario),
-      dadosBancarios: d.dados_bancarios ?? "",
-    })),
+    diarias: s.diarias
+      .filter((d) => !d.acrescentado_em)
+      .map((d) => ({
+        chave: novaChave(),
+        colaborador: d.colaborador,
+        vinculo: d.vinculo,
+        tipoDiaria: d.tipo_diaria,
+        dias: String(d.dias),
+        valor: formatarNumeroBR(d.valor_unitario),
+        dadosBancarios: d.dados_bancarios ?? "",
+      })),
     dadosTransferencia: s.dados_transferencia ?? "",
 
     sstAplicavel: s.sst_aplicavel,

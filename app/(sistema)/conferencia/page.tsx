@@ -22,6 +22,7 @@ import { TabelaDeFila, type ColunaDeFila } from "@/app/components/TabelaDeFila";
 import { DetalheEmPopup } from "@/app/(sistema)/solicitacoes/[id]/DetalheEmPopup";
 import { RegistrarConferencia } from "@/app/(sistema)/conferencia/RegistrarConferencia";
 import { ChecklistEmPopup } from "@/app/(sistema)/solicitacoes/[id]/checklist/ChecklistEmPopup";
+import { AjusteEmCampo } from "@/app/(sistema)/solicitacoes/[id]/AjusteEmCampo";
 import { solicitacoesParaConferencia } from "@/lib/consultas";
 import { podeVerValores } from "@/lib/papeis";
 
@@ -79,6 +80,11 @@ export default async function PaginaDeConferencia() {
                 confere, se assina e se registra, e sair da tela custaria o
                 filtro e a rolagem de quem está trabalhando na lista. */}
             <ChecklistEmPopup solicitacao={s} catalogo={dados.catalogo} />
+            {/* A CHAVE INGLESA — o ajuste do campo em andamento. Está aqui
+                porque é aqui que se descobre o que faltou: o balcão da
+                conferência é onde a equipe chega dizendo "precisamos de mais
+                um medidor" e volta dizendo "estendeu dois dias". */}
+            <AjusteEmCampo solicitacao={s} catalogo={dados.catalogo} diarias={dados.diarias} />
             <RegistrarConferencia
               solicitacao={s}
               catalogo={dados.catalogo}

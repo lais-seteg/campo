@@ -51,6 +51,7 @@ import { Icone } from "@/app/components/Icone";
 import { RegistrarConferencia } from "@/app/(sistema)/conferencia/RegistrarConferencia";
 import { ChecklistEmPopup } from "@/app/(sistema)/solicitacoes/[id]/checklist/ChecklistEmPopup";
 import { DetalheEmPopup } from "@/app/(sistema)/solicitacoes/[id]/DetalheEmPopup";
+import { AjusteEmCampo } from "@/app/(sistema)/solicitacoes/[id]/AjusteEmCampo";
 
 /** Onde o atalho de conferência da lista faz sentido — o mesmo intervalo
  *  que `solicitacoesParaConferencia` usa para montar a fila da aba. */
@@ -336,6 +337,16 @@ export function ListaDeSolicitacoes({
                       {s.equipamentos.length ? (
                         <ChecklistEmPopup solicitacao={s} catalogo={catalogo} />
                       ) : null}
+                      {/* A CHAVE INGLESA — pedir material, diária ou despesa
+                          que o campo precisou e o pedido não previu. Está
+                          aqui além da Conferência porque quem PEDE trabalha
+                          nesta lista: o solicitante não abre a fila do
+                          balcão. Ela mesma se esconde em pedido fechado. */}
+                      <AjusteEmCampo
+                        solicitacao={s}
+                        catalogo={catalogo}
+                        diarias={diariasCadastradas}
+                      />
                       {/* O atalho de conferência direto da lista, como no
                           `abrirConferenciaAuto` da versão anterior: o modo
                           (entrega ou devolução) é decidido pelo estado do

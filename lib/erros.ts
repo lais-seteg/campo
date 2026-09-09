@@ -45,6 +45,20 @@ export function tabelaNaoExiste(erro: unknown): boolean {
   return codigoDoErro(erro) === "42P01" || /does not exist/i.test(textoDoErro(erro));
 }
 
+/**
+ * 42703 = "column does not exist". Uma coluna nova (supabase/17, por
+ * exemplo) chega ao banco e ao código em momentos diferentes: durante a
+ * janela do deploy o servidor novo fala com o banco velho, ou o contrário.
+ * Quem precisa distinguir isso pede a coluna e trata este código.
+ *
+ * ATENÇÃO À ORDEM: `tabelaNaoExiste()` acima cai no `/does not exist/`
+ * genérico e também dá `true` para erro de coluna. Quem quiser separar os
+ * dois tem de perguntar por esta função PRIMEIRO.
+ */
+export function colunaNaoExiste(erro: unknown): boolean {
+  return codigoDoErro(erro) === "42703" || /column .* does not exist/i.test(textoDoErro(erro));
+}
+
 /** Restrições que a tela pode encostar, com a frase que explica o que
  *  fazer. A ordem importa pouco; a especificidade, muito. */
 const TRADUCOES: readonly { padrao: RegExp; mensagem: string }[] = [

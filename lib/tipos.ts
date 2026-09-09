@@ -444,7 +444,25 @@ export interface SolicitacaoHospedagem {
   reserva_codigo: string | null;
 }
 
-export interface SolicitacaoDespesa {
+/**
+ * Quando a linha de custo entrou por AJUSTE EM CAMPO, e não pelo formulário
+ * (supabase/17).
+ *
+ * Não é só auditoria: é o que PROTEGE a linha. A edição do pedido apaga as
+ * diárias e as despesas e as reescreve a partir do formulário
+ * (`limparFilhas`); linha marcada fica fora dessa limpeza — o mesmo
+ * mecanismo que já guarda o equipamento entregue. Sem isso, a diária
+ * acrescentada hoje sumiria na próxima correção de qualquer outro campo.
+ *
+ * Opcional no tipo porque as filhas são lidas com embed `*`: um deploy
+ * anterior à coluna não pode quebrar a leitura.
+ */
+interface Acrescentavel {
+  acrescentado_em?: string | null;
+  acrescentado_por?: string | null;
+}
+
+export interface SolicitacaoDespesa extends Acrescentavel {
   id: string;
   solicitacao_id: string;
   grupo: GrupoDespesa;
@@ -452,7 +470,7 @@ export interface SolicitacaoDespesa {
   valor: number;
 }
 
-export interface SolicitacaoDiaria {
+export interface SolicitacaoDiaria extends Acrescentavel {
   id: string;
   solicitacao_id: string;
   colaborador: string;
@@ -463,6 +481,34 @@ export interface SolicitacaoDiaria {
   /** Coluna gerada (dias × valor_unitario) — nunca enviada pelo aplicativo. */
   valor_total: number;
   dados_bancarios: string | null;
+}
+
+/** Uma linha do checklist como a pessoa a deixou, ainda sem registrar. */
+export interface LinhaDoRascunho {
+  id: string;
+  marcado: boolean;
+  teste: boolean;
+  avaria: boolean;
+  observacao: string;
+  gravidade: string;
+  custo: string;
+  providencia: string;
+  fornecedor: string;
+}
+
+/**
+ * O checklist a meio preenchimento (`solicitacoes.checklist_rascunho`,
+ * supabase/17).
+ *
+ * `momento` existe para o rascunho da RETIRADA não ser aplicado à tela da
+ * DEVOLUÇÃO: são duas conferências do mesmo pedido, e as marcas de uma não
+ * dizem nada sobre a outra.
+ */
+export interface ChecklistRascunho {
+  momento: MomentoAssinatura;
+  data: string;
+  linhas: LinhaDoRascunho[];
+  salvo_em: string;
 }
 
 export interface SolicitacaoEquipe {
@@ -696,6 +742,29 @@ export interface SolicitacaoCabecalho {
    * Opcional porque `solicitacoes` é lida com `select *`.
    */
   checklist_observacoes?: string | null;
+
+  /**
+   * O checklist a meio preenchimento (supabase/17): o que a pessoa marcou e
+   * ainda não registrou.
+   *
+   * ── POR QUE UM RASCUNHO, E NÃO GRAVAR AS MARCAS ──
+   *
+   * As marcas de verdade (`entregue`, `teste_entrega`, `avaria`) são
+   * escritas por `registrar_entrega_solicitacao` / `..._devolucao_...`,
+   * numa transação só, porque é ela que MOVE O ESTOQUE. Gravar clique por
+   * clique deixaria o estoque a meio caminho se a conexão caísse.
+   *
+   * Mas o efeito colateral era perder o trabalho: quem conferia doze
+   * itens, assinava e fechava o popup antes de registrar, marcava os doze
+   * de novo. O rascunho resolve isso sem tocar no estoque — ele não é
+   * fato, é a tela guardada. O registro o zera.
+   *
+   * `unknown` de propósito: o formato é o do formulário e muda com ele,
+   * sem migração. Quem valida é `ChecklistRascunho` na hora de usar; um
+   * rascunho de formato velho é descartado, e o pior que acontece é
+   * marcar de novo.
+   */
+  checklist_rascunho?: unknown;
 
   criado_em: string;
   atualizado_em: string;

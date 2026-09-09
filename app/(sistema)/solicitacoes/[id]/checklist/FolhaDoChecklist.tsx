@@ -47,15 +47,37 @@ export function FolhaDoChecklist({
   /** Quem já assinou o quê, e qual papel EU posso assinar. */
   situacao: readonly SituacaoDaAssinatura[];
 }) {
-  // O nome de quem dorme entra na folha impressa: é por ela que se confere,
-  // no balcão do hotel, se a reserva é da pessoa que está ali.
-  const hospedagens = s.hospedagens
-    .map((h) => {
-      const quem = h.hospedes ? ` — ${h.hospedes}` : "";
-      const periodo = `${dataISOparaBR(h.entrada) || "?"} a ${dataISOparaBR(h.saida) || "?"}, ${h.dias ?? 0}d`;
-      return `${h.cidade} (${periodo})${quem}`;
-    })
-    .join(" · ");
+  // ── UMA CIDADE POR LINHA, E SEM INTERROGAÇÃO ──
+  //
+  // Saía tudo grudado numa frase só, separado por "·":
+  //
+  //   FORTALEZA (? a ?, 0d) — LAIS MENDES · CAUCAIA (? a ?, 0d) — LIZABETH
+  //
+  // Dois problemas, e os dois atrapalham quem está no balcão do hotel com a
+  // folha na mão. O primeiro é a forma: três cidades viravam um parágrafo, e
+  // achar a sua exigia ler as outras. Agora é uma linha por cidade.
+  //
+  // O segundo era o "?" — entrada e saída são opcionais no banco e ficavam
+  // nulas, então a folha anunciava um período que não sabia. Nos pedidos
+  // novos a tela já sugere as datas do campo, e os antigos foram corrigidos
+  // (supabase/17); mas se ainda faltar, a folha diz "datas a definir" em vez
+  // de fingir um período. Interrogação numa reserva de hotel é pior que
+  // silêncio: parece dado, e não é.
+  const hospedagens = s.hospedagens.map((h) => {
+    const entrada = dataISOparaBR(h.entrada);
+    const saida = dataISOparaBR(h.saida);
+    const noites = h.dias ?? 0;
+    const periodo =
+      entrada && saida
+        ? `${entrada} a ${saida}${noites ? ` · ${noites} diária(s)` : ""}`
+        : "datas a definir";
+    return {
+      chave: h.id,
+      cidade: h.cidade,
+      periodo,
+      hospedes: h.hospedes ?? "",
+    };
+  });
 
   const locadora =
     s.transporte_locadora === "Outros" ? s.transporte_locadora_outra || "Outros" : s.transporte_locadora;
@@ -65,10 +87,13 @@ export function FolhaDoChecklist({
     : "";
 
   // A equipe entra na folha: é ela que confere o material na retirada e
-  // responde por ele em campo.
-  const equipe = s.equipe
-    .map((e) => `${e.colaborador}${e.lider ? " (líder)" : ""}${e.funcao ? ` — ${e.funcao}` : ""}`)
-    .join(" · ");
+  // responde por ele em campo. Uma pessoa por linha, pelo mesmo motivo da
+  // hospedagem — é uma lista, e lista grudada em frase não se procura.
+  const equipe = s.equipe.map((e) => ({
+    chave: e.id,
+    nome: `${e.colaborador}${e.lider ? " (líder)" : ""}`,
+    funcao: e.funcao ?? "",
+  }));
 
   const emRetirada = !s.entrega_data;
   const podeConferir = emRetirada
@@ -114,10 +139,19 @@ export function FolhaDoChecklist({
             <th>Recurso até</th>
             <td>{dataISOparaBR(s.data_recurso) || "—"}</td>
           </tr>
-          {equipe ? (
+          {equipe.length ? (
             <tr>
               <th>Equipe</th>
-              <td colSpan={3}>{equipe}</td>
+              <td colSpan={3}>
+                <ul className="chk-lista">
+                  {equipe.map((e) => (
+                    <li key={e.chave}>
+                      <strong>{e.nome}</strong>
+                      {e.funcao ? <span>{e.funcao}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </td>
             </tr>
           ) : null}
           {veiculo ? (
@@ -126,10 +160,20 @@ export function FolhaDoChecklist({
               <td colSpan={3}>{veiculo}</td>
             </tr>
           ) : null}
-          {hospedagens ? (
+          {hospedagens.length ? (
             <tr>
               <th>Hospedagem</th>
-              <td colSpan={3}>{hospedagens}</td>
+              <td colSpan={3}>
+                <ul className="chk-lista">
+                  {hospedagens.map((h) => (
+                    <li key={h.chave}>
+                      <strong>{h.cidade}</strong>
+                      <span>{h.periodo}</span>
+                      {h.hospedes ? <span>{h.hospedes}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </td>
             </tr>
           ) : null}
         </tbody>
