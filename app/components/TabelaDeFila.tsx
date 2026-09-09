@@ -87,9 +87,11 @@ export function TabelaDeFila({ fila, verValores, mostrarStatus = false, acoes, v
                 ) : null}
                 <th>SST</th>
                 {mostrarStatus ? <th>Status</th> : null}
-                {/* Coluna própria, mais larga que a das outras tabelas: aqui
-                    as ações são BOTÃO COM TEXTO ("Aprovar", "Recusar",
-                    "Fechar logística"), e não os ícones de 27px da lista. */}
+                {/* Coluna própria porque aqui ainda há botão com TEXTO — o
+                    Aprovar/Recusar do líder, que é decisão e não pode virar
+                    desenho sem nome. Os outros gatilhos (confirmar logística,
+                    registrar entrega, checklist, informações) já são ícones de
+                    27px, como na lista. */}
                 <th className="col-acoes-fila">Ações</th>
               </tr>
             </thead>
@@ -102,7 +104,7 @@ export function TabelaDeFila({ fila, verValores, mostrarStatus = false, acoes, v
                   <td className="cel-texto">{s.tipo}</td>
                   <td className="cel-texto">{s.solicitante_nome || "—"}</td>
                   <td className="cel-texto">{s.destino || "—"}</td>
-                  <td className="cel-texto cel-inteiro">{periodoTexto(s)}</td>
+                  <td className="cel-texto">{periodoTexto(s)}</td>
                   <td className="cel-texto">{equipeResumo(s)}</td>
                   {verValores ? (
                     <>

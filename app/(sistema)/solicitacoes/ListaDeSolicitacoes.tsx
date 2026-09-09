@@ -293,7 +293,7 @@ export function ListaDeSolicitacoes({
                     <td className="cel-texto">{s.cliente_projeto || "—"}</td>
                     <td className="cel-texto">{s.escopo || "—"}</td>
                     <td className="cel-texto">{s.destino || "—"}</td>
-                    <td className="cel-texto cel-inteiro">{periodoTexto(s)}</td>
+                    <td className="cel-texto">{periodoTexto(s)}</td>
                     <td className="cel-texto">{equipeResumo(s)}</td>
                     {verValores ? (
                       <>

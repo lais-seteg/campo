@@ -80,6 +80,23 @@
      e precisam da largura. */
   --navbar-height:80px;
   --page-padding-x:clamp(20px,4vw,72px);
+
+  /* ── O RESPIRO DO CONTEÚDO É MENOR QUE O DA BARRA ──
+     Eram a mesma medida, e os 72px de teto custavam 144px de largura em toda
+     tela de 1920 — largura que a tabela de Solicitações não tem de sobra e
+     que estava virando espaço vazio nas laterais, enquanto o conteúdo pedia
+     rolagem horizontal. Espaço vazio ao lado de uma tabela que não cabe é o
+     pior dos dois mundos.
+
+     Continuam DUAS variáveis, e não uma reduzida, porque as duas respondem a
+     coisas diferentes: a BARRA precisa do respiro (logo, nome do sistema e
+     rodapé encostados na borda ficam apertados, e ela não tem conteúdo que
+     dispute largura); o CONTEÚDO precisa da largura. Reduzir a das duas
+     deixaria a barra feia para resolver um problema que não é dela.
+
+     24px ainda separa o cartão da borda da tela — não é zero, é o mínimo que
+     ainda se lê como margem. */
+  --secao-padding-x:clamp(12px,1.4vw,24px);
   /* Largura da barra quando ela é VERTICAL (menu com mais de oito abas —
      ver `.layout-lateral`). Quem manda no número é o RODAPÉ, não as abas:
      "Solicitações" e "Conferência" cabiam em 208px, mas ali embaixo o nome
@@ -193,7 +210,7 @@ button,input,select,textarea{font-family:inherit}
 
 /* ─── MAIN / SECTIONS ────────────────────────────── */
 .app-main{margin-top:var(--navbar-height);height:calc(100vh - var(--navbar-height));overflow:hidden;display:flex;flex-direction:column}
-.secao{display:none;flex:1;min-height:0;overflow:hidden;padding:20px var(--page-padding-x) 24px}
+.secao{display:none;flex:1;min-height:0;overflow:hidden;padding:20px var(--secao-padding-x) 24px}
 .secao.active{display:flex;flex-direction:column}
 /* Toda seção cabe numa tela só: a página em si nunca rola (overflow:hidden
    acima). Quando a lista é maior que o espaço, quem rola é o corpo da
