@@ -407,25 +407,26 @@ export function ListaDeHoteis({ hoteis, usosPorHotel, podeExcluir, v2Ativa, abas
             <div className="form-section-block">
               <h4 className="form-subtitle">Contato</h4>
               <div className="form-grid">
+                {/* Os dois mascarados e com teto de onze dígitos: era campo
+                    livre, e telefone de hotel com um dígito a mais é
+                    ligação que não completa na hora de confirmar a reserva. */}
                 <Grupo rotulo="Telefone">
                   {(id) => (
-                    <input
+                    <CampoMascarado
                       id={id}
-                      className="form-control"
-                      placeholder="(00) 0000-0000"
-                      value={rascunho.telefone}
-                      onChange={(e) => setRascunho({ ...rascunho, telefone: e.target.value })}
+                      mascara="telefone"
+                      valor={rascunho.telefone}
+                      aoMudar={(v) => setRascunho({ ...rascunho, telefone: v })}
                     />
                   )}
                 </Grupo>
                 <Grupo rotulo="WhatsApp">
                   {(id) => (
-                    <input
+                    <CampoMascarado
                       id={id}
-                      className="form-control"
-                      placeholder="(00) 00000-0000"
-                      value={rascunho.whatsapp}
-                      onChange={(e) => setRascunho({ ...rascunho, whatsapp: e.target.value })}
+                      mascara="telefone"
+                      valor={rascunho.whatsapp}
+                      aoMudar={(v) => setRascunho({ ...rascunho, whatsapp: v })}
                     />
                   )}
                 </Grupo>

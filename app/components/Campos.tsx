@@ -13,7 +13,13 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { useId, type ReactNode } from "react";
-import { mascararCpf, mascararData, mascararHora, mascararMoeda } from "@/lib/formato";
+import {
+  mascararCpf,
+  mascararData,
+  mascararHora,
+  mascararMoeda,
+  mascararTelefone,
+} from "@/lib/formato";
 
 interface GrupoProps {
   rotulo: string;
@@ -40,19 +46,30 @@ export function Grupo({ rotulo, obrigatorio, largo, dica, children }: GrupoProps
   );
 }
 
-type TipoDeMascara = "data" | "hora" | "cpf" | "moeda";
+type TipoDeMascara = "data" | "hora" | "cpf" | "telefone" | "moeda";
 
 const MASCARAS: Record<TipoDeMascara, (v: string) => string> = {
   data: mascararData,
   hora: mascararHora,
   cpf: mascararCpf,
+  telefone: mascararTelefone,
   moeda: mascararMoeda,
 };
 
+/**
+ * O teto de caracteres do campo. É a SEGUNDA barreira, e as duas importam:
+ * a máscara corta o dígito a mais ao digitar, e o `maxLength` corta o que
+ * chega colado da área de transferência — colar não passa pelo caminho de
+ * quem digita.
+ *
+ * 15 no telefone é `(00) 00000-0000` inteiro: dois do DDD, nove do número e
+ * os quatro caracteres de formatação.
+ */
 const TAMANHOS: Record<TipoDeMascara, number> = {
   data: 10,
   hora: 5,
   cpf: 14,
+  telefone: 15,
   moeda: 20,
 };
 
@@ -60,6 +77,7 @@ const PLACEHOLDERS: Record<TipoDeMascara, string> = {
   data: "00/00/0000",
   hora: "00:00",
   cpf: "000.000.000-00",
+  telefone: "(00) 00000-0000",
   moeda: "0,00",
 };
 

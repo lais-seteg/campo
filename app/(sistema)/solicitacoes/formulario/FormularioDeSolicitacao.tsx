@@ -487,11 +487,14 @@ export function FormularioDeSolicitacao({
                     o do PROJETO, no cabeçalho da solicitação, e ele vem da API
                     do Clockify — pedi-lo de novo em cada linha da equipe era
                     coletar o mesmo dado N vezes, que é onde ele sai diferente. */}
-                <input
-                  className="form-control"
+                {/* Mascarado e com teto: onze dígitos é o máximo que existe
+                    no país, e telefone com quinze não é telefone — é um
+                    campo que parece preenchido e não disca. */}
+                <CampoMascarado
+                  mascara="telefone"
+                  valor={linha.telefone}
+                  aoMudar={(v) => trocarEquipe(setF, indice, { telefone: v })}
                   placeholder="Telefone"
-                  value={linha.telefone}
-                  onChange={(e) => trocarEquipe(setF, indice, { telefone: e.target.value })}
                 />
                 <label className="conf-check" title="O líder informa o previsto e assina como prestador">
                   <input

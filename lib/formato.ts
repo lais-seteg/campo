@@ -91,6 +91,31 @@ export function mascararCpf(valor: string): string {
     .replace(/(\d{3})(\d)/, "$1-$2");
 }
 
+/**
+ * Telefone brasileiro, com DDD: `(85) 3333-4444` ou `(85) 98888-7777`.
+ *
+ * ── ONZE DÍGITOS, E NÃO UM A MAIS ──
+ *
+ * O `.slice(0, 11)` é o ponto: 2 do DDD + 9 do número é o máximo que existe
+ * no país. Sem ele o campo aceitava telefone com quinze dígitos — e um
+ * número que ninguém consegue discar é pior do que um campo vazio, porque
+ * parece preenchido. Quem digita a mais simplesmente não vê o dígito
+ * entrar, que é o mesmo comportamento do CPF e da data aqui do lado.
+ *
+ * O nono dígito decide a formatação: com 11, o bloco da frente tem cinco
+ * casas (celular); com 10, quatro (fixo). É por isso que a máscara olha o
+ * comprimento em vez de aplicar um `replace` fixo como a do CPF.
+ */
+export function mascararTelefone(valor: string): string {
+  const d = valor.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d;
+  const ddd = `(${d.slice(0, 2)}) `;
+  const resto = d.slice(2);
+  if (resto.length <= 4) return ddd + resto;
+  const corte = resto.length > 8 ? 5 : 4;
+  return `${ddd}${resto.slice(0, corte)}-${resto.slice(corte)}`;
+}
+
 export function mascararMoeda(valor: string): string {
   const limpo = valor.replace(/[^\d,]/g, "");
   const partes = limpo.split(",");
