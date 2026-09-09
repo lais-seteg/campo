@@ -68,6 +68,22 @@ export function dataISOparaBR(v: string | null | undefined): string {
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
+/**
+ * "2026-12-31" → "31/12". Sem o ano, para caber DENTRO de uma célula que já
+ * tem outras coisas — a hospedagem numa linha de tabela mostra cidade, hotel
+ * e período, e "31/12/2026 a 05/01/2027" sozinho ocuparia a coluna inteira.
+ *
+ * Só onde o ano já está dito por perto (a coluna Período do mesmo pedido, o
+ * cabeçalho da tela). Data solta nunca perde o ano: um campo que atravessa o
+ * réveillon vira "31/12 a 05/01" e some a informação de que mudou de ano.
+ */
+export function dataCurtaBR(v: string | null | undefined): string {
+  if (!v) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v));
+  if (!m) return "";
+  return `${m[3]}/${m[2]}`;
+}
+
 // ─── Máscaras (puras: texto entra, texto sai) ────────────────────────────
 
 export function mascararData(valor: string): string {

@@ -47,9 +47,9 @@
 import type { ReactNode } from "react";
 import { Selo, TabelaVazia } from "@/app/components/Tabela";
 import { classeDoSst, classeDoStatus } from "@/lib/listas";
-import { formatarMoeda } from "@/lib/formato";
+import { dataCurtaBR, formatarMoeda } from "@/lib/formato";
 import { equipeResumo, periodoTexto } from "@/lib/consultas";
-import type { SolicitacaoDeLista } from "@/lib/tipos";
+import type { Hotel, SolicitacaoDeLista } from "@/lib/tipos";
 
 /** As colunas que uma fila pode pedir. Ver `COLUNAS` para o que cada uma
  *  mostra. A ORDEM de exibição é a ordem do array que a tela passa. */
@@ -61,9 +61,17 @@ export type ColunaDeFila =
   | "destino"
   | "periodo"
   | "equipe"
+  | "hospedagem"
   | "valores"
   | "sst"
   | "status";
+
+/** O que uma célula precisa saber além da própria solicitação. Hoje só a
+ *  coluna de hospedagem usa — para trocar `hotel_id` pelo NOME da casa,
+ *  que é o que se lê. */
+interface ContextoDaFila {
+  hotelPorId: Map<string, Hotel>;
+}
 
 interface Coluna {
   titulo: string;
@@ -72,7 +80,7 @@ interface Coluna {
   classe?: string;
   /** Classe do `td`, quando difere da do cabeçalho. */
   classeCel?: string;
-  celula: (s: SolicitacaoDeLista) => ReactNode;
+  celula: (s: SolicitacaoDeLista, ctx: ContextoDaFila) => ReactNode;
   /** Coluna de dinheiro: só entra para quem pode ver valor. */
   soComValores?: boolean;
 }
@@ -119,6 +127,39 @@ const COLUNAS: Record<ColunaDeFila, Coluna> = {
     classe: "cel-texto",
     celula: (s) => equipeResumo(s),
   },
+  // ── ONDE A EQUIPE DORME ──
+  //
+  // Uma linha por cidade, com a casa e as datas DAQUELA hospedagem — que
+  // nem sempre são as do campo: quem chega na véspera dorme uma noite a
+  // mais que os dias de trabalho.
+  //
+  // Serve às duas metades da aba Logística. Na fila do que falta fechar,
+  // "hotel a definir" é justamente o que se procura — diz qual pedido ainda
+  // pede trabalho. Na lista do que já foi confirmado, é o nome da casa e o
+  // período, que é o que se lê quando alguém liga perguntando da reserva.
+  hospedagem: {
+    titulo: "Hospedagem",
+    classe: "cel-texto",
+    celula: (s, { hotelPorId }) => {
+      if (!s.hospedagens.length) return "—";
+      return (
+        <ul className="cel-lista">
+          {s.hospedagens.map((h) => {
+            const hotel = h.hotel_id ? hotelPorId.get(h.hotel_id) : undefined;
+            const periodo =
+              h.entrada && h.saida ? `${dataCurtaBR(h.entrada)} a ${dataCurtaBR(h.saida)}` : "";
+            return (
+              <li key={h.id}>
+                <strong>{h.cidade}</strong>
+                <span>{hotel ? hotel.nome : "hotel a definir"}</span>
+                {periodo ? <span>{periodo}</span> : null}
+              </li>
+            );
+          })}
+        </ul>
+      );
+    },
+  },
   // Previsto e Real numa coluna só, um embaixo do outro: eles se leem
   // SEMPRE juntos ("quanto era × quanto foi"), e separados gastavam duas
   // larguras de dinheiro para dizer uma comparação.
@@ -150,17 +191,24 @@ interface Props {
   verValores: boolean;
   /** As colunas desta fila, NA ORDEM em que devem aparecer. */
   colunas: readonly ColunaDeFila[];
+  /** Só quem pede a coluna `hospedagem` precisa mandar: é a lista que
+   *  traduz `hotel_id` no nome da casa. */
+  hoteis?: readonly Hotel[];
   /** O que cada tela faz com a linha. É a única coisa que muda entre elas. */
   acoes: (s: SolicitacaoDeLista) => ReactNode;
   /** O texto do estado vazio, que em cada fila explica um motivo diferente. */
   vazio: ReactNode;
 }
 
-export function TabelaDeFila({ fila, verValores, colunas, acoes, vazio }: Props) {
+export function TabelaDeFila({ fila, verValores, colunas, hoteis = [], acoes, vazio }: Props) {
   // A coluna de dinheiro cai fora inteira — cabeçalho e células — para
   // quem não pode vê-la. Esconder só o valor deixaria a coluna vazia
   // dizendo "existe um número aqui que você não vê", que é pior.
   const visiveis = colunas.filter((c) => !COLUNAS[c].soComValores || verValores);
+  // Montado UMA vez para a tabela toda, e não por célula: com trinta linhas
+  // e trinta hotéis, o `find` por linha é mil comparações para responder
+  // trinta perguntas.
+  const contexto: ContextoDaFila = { hotelPorId: new Map(hoteis.map((h) => [h.id, h])) };
 
   return (
     <div className="lista-wrapper">
@@ -187,7 +235,7 @@ export function TabelaDeFila({ fila, verValores, colunas, acoes, vazio }: Props)
                 <tr key={s.id}>
                   {visiveis.map((c) => (
                     <td key={c} className={COLUNAS[c].classeCel ?? COLUNAS[c].classe}>
-                      {COLUNAS[c].celula(s)}
+                      {COLUNAS[c].celula(s, contexto)}
                     </td>
                   ))}
                   <td className="table-actions acoes-fila">{acoes(s)}</td>

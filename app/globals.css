@@ -303,6 +303,27 @@ button,input,select,textarea{font-family:inherit}
 /* ─── LISTA WRAPPERS ─────────────────────────────── */
 .lista-wrapper{display:flex;flex-direction:column;flex:1;min-height:0}
 
+/* ── DUAS LISTAS NA MESMA SEÇÃO ──
+   A aba Logística mostra o que falta fechar E o que já foi fechado: são
+   duas perguntas diferentes ("o que me dá trabalho?" e "onde a equipe
+   dorme?") e uma tabela só, com uma coluna de status, faria procurar a
+   resposta dentro da lista errada.
+
+   `flex:1 1 auto` e não `flex:1`: com `basis:0` os dois blocos dividiriam a
+   altura ao meio mesmo quando um está vazio, e meia tela para dizer
+   "nenhuma logística pendente" é desperdício. Com `basis:auto` cada um parte
+   do tamanho do próprio conteúdo e só a SOBRA é dividida — o bloco cheio
+   fica grande, o vazio fica do tamanho do aviso.
+
+   `min-height:0` para a rolagem acontecer DENTRO do corpo de cada tabela,
+   em vez de o bloco empurrar a seção para fora da tela. */
+.secao-bloco{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+.secao-subtitulo{
+  flex-shrink:0;margin:.5rem 0 .1rem;font-size:.72rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.05em;color:var(--text-secondary)
+}
+.secao-bloco:first-of-type .secao-subtitulo{margin-top:0}
+
 /* ─── TABLE CONTROLS ─────────────────────────────── */
 .table-controls{padding:.6rem 0;flex-shrink:0}
 /* Filtros, busca e ações numa linha horizontal só. Os selects ficam do
@@ -475,6 +496,23 @@ button,input,select,textarea{font-family:inherit}
 /* A segunda linha de uma célula: a composição por trás do número (quantas
    categorias somam aquele total, quantas avarias somam aquele custo). */
 .tabela-sub{color:var(--text-muted);font-size:.68rem}
+
+/* ── LISTA DENTRO DE UMA CÉLULA ──
+   Para a célula que guarda VÁRIAS coisas do mesmo tipo — as cidades da
+   hospedagem, cada uma com sua casa e seu período. Grudadas numa frase só
+   ("FORTALEZA · Hotel A · CAUCAIA · Hotel B") não se sabe onde uma acaba e
+   a outra começa; é o mesmo problema que a folha do checklist tinha.
+
+   Sem marcador e sem recuo: dentro de uma célula o marcador competiria com
+   a borda da coluna. O que separa uma da outra é a linha; o que separa os
+   pedaços de uma é o "·", que nasce do CSS para nunca sobrar sozinho
+   quando o último pedaço não existe. */
+.cel-lista{list-style:none;margin:0;padding:0}
+.cel-lista li{line-height:1.3}
+.cel-lista li+li{margin-top:.2rem}
+.cel-lista strong{font-weight:700;display:block}
+.cel-lista span{font-size:.74rem;color:var(--text-secondary)}
+.cel-lista span+span::before{content:" · "}
 
 /* ── OS BOTÕES DE AÇÃO FICAM NUMA LINHA ──
    Eles podiam quebrar em duas (`flex-wrap:wrap`) porque os gatilhos eram

@@ -39,10 +39,24 @@ export function FecharLogistica({
   solicitacao: s,
   hoteis,
   catalogo,
+  jaConfirmada = false,
 }: {
   solicitacao: SolicitacaoDeLista;
   hoteis: Hotel[];
   catalogo: Item[];
+  /**
+   * A logística DESTE pedido já foi confirmada — o painel abre para
+   * AJUSTAR, não para confirmar.
+   *
+   * O que muda é o gesto e o nome, não o formulário: o hotel mudou, a
+   * diária veio outra, chegou o número da reserva. Uma seta verde de
+   * "confirmar" sobre algo já confirmado mentiria sobre o que o clique faz,
+   * e o botão "Confirmar logística" no rodapé sugeriria que ainda falta
+   * confirmar. A rota já ignora a reconfirmação (não reescreve o status nem
+   * carimba segunda data) — isto é para a TELA não prometer o que não vai
+   * acontecer.
+   */
+  jaConfirmada?: boolean;
 }) {
   const roteador = useRouter();
   const { avisar } = useAvisos();
@@ -100,7 +114,10 @@ export function FecharLogistica({
         })),
       });
       setAberto(false);
-      avisar(confirmar ? "Logística confirmada." : "Logística salva.", "ok");
+      avisar(
+        confirmar ? "Logística confirmada." : jaConfirmada ? "Ajuste salvo." : "Logística salva.",
+        "ok"
+      );
       roteador.refresh();
     } catch (erro) {
       avisar(mensagemDoErro(erro, confirmar ? "confirmar a logística" : "salvar a logística"), "erro");
@@ -130,13 +147,13 @@ export function FecharLogistica({
           Verde porque é a cor de confirmação no resto do sistema
           (`btn-icon-green`), a mesma dos botões de confirmar dos modais. */}
       <button
-        className="btn-icon btn-icon-green"
+        className={jaConfirmada ? "btn-icon" : "btn-icon btn-icon-green"}
         type="button"
-        title="Confirmar logística"
-        aria-label="Confirmar logística"
+        title={jaConfirmada ? "Ajustar a logística fechada" : "Confirmar logística"}
+        aria-label={jaConfirmada ? "Ajustar a logística fechada" : "Confirmar logística"}
         onClick={() => setAberto(true)}
       >
-        <Icone nome="seta" />
+        <Icone nome={jaConfirmada ? "editar" : "seta"} />
       </button>
 
       <Modal
@@ -148,12 +165,24 @@ export function FecharLogistica({
             <button className="btn btn-ghost" type="button" onClick={() => setAberto(false)} disabled={ocupado}>
               Cancelar
             </button>
-            <button className="btn btn-ghost" type="button" onClick={() => salvar(false)} disabled={ocupado}>
-              Salvar sem confirmar
-            </button>
-            <button className="btn btn-green" type="button" onClick={() => salvar(true)} disabled={ocupado}>
-              {ocupado ? "Salvando…" : "Confirmar logística"}
-            </button>
+            {/* Já confirmada, existe UM botão só. As duas ações do fluxo
+                normal — "salvar o que já sei" e "confirmar" — respondiam a
+                uma pergunta que aqui já foi respondida; oferecer as duas
+                faria escolher entre dois caminhos que dão no mesmo. */}
+            {jaConfirmada ? (
+              <button className="btn btn-primary" type="button" onClick={() => salvar(false)} disabled={ocupado}>
+                {ocupado ? "Salvando…" : "Salvar ajuste"}
+              </button>
+            ) : (
+              <>
+                <button className="btn btn-ghost" type="button" onClick={() => salvar(false)} disabled={ocupado}>
+                  Salvar sem confirmar
+                </button>
+                <button className="btn btn-green" type="button" onClick={() => salvar(true)} disabled={ocupado}>
+                  {ocupado ? "Salvando…" : "Confirmar logística"}
+                </button>
+              </>
+            )}
           </>
         }
       >
