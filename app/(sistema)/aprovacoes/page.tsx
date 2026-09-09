@@ -13,15 +13,14 @@
 //  aprovado, porque ninguém espera por si mesmo.
 // ═══════════════════════════════════════════════════════════════════════
 
-import Link from "next/link";
 import { exigirSessao } from "@/lib/sessao";
 import { carregarDados } from "@/lib/dados";
 import { CabecalhoDeSecao } from "@/app/components/Tabela";
 import { TabelaDeFila } from "@/app/components/TabelaDeFila";
+import { DetalheEmPopup } from "@/app/(sistema)/solicitacoes/[id]/DetalheEmPopup";
 import { DecisaoDoLider } from "@/app/(sistema)/aprovacoes/DecisaoDoLider";
 import { solicitacoesParaAprovar } from "@/lib/consultas";
 import { ehDirecao, ehLider, podeVerValores } from "@/lib/papeis";
-import { Icone } from "@/app/components/Icone";
 
 export const dynamic = "force-dynamic";
 
@@ -56,9 +55,18 @@ export default async function PaginaDeAprovacoes() {
         verValores={podeVerValores(usuario, dados.projetos)}
         acoes={(s) => (
           <>
-            <Link className="btn-icon" href={`/solicitacoes/${s.id}`} title="Ver">
-              <Icone nome="olho" />
-            </Link>
+            {/* As informações abrem em POPUP sobre a fila — o mesmo
+                padrão do "Informações do Equipamento" do Controle de
+                Estoque. A página do pedido continua no endereço, para
+                link direto e para as ações. */}
+            <DetalheEmPopup
+              solicitacao={s}
+              projetos={dados.projetos}
+              catalogo={dados.catalogo}
+              hoteis={dados.hoteis}
+              perfis={dados.perfis}
+              verValores={podeVerValores(usuario, dados.projetos)}
+            />
             <DecisaoDoLider id={s.id} codigo={s.codigo} />
           </>
         )}

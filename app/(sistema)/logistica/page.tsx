@@ -10,15 +10,14 @@
 //  ele ainda não validou é gastar antes da hora.
 // ═══════════════════════════════════════════════════════════════════════
 
-import Link from "next/link";
 import { exigirSessao } from "@/lib/sessao";
 import { carregarDados } from "@/lib/dados";
 import { CabecalhoDeSecao } from "@/app/components/Tabela";
 import { TabelaDeFila } from "@/app/components/TabelaDeFila";
+import { DetalheEmPopup } from "@/app/(sistema)/solicitacoes/[id]/DetalheEmPopup";
 import { FecharLogistica } from "@/app/(sistema)/logistica/FecharLogistica";
 import { porStatus } from "@/lib/consultas";
 import { podeVerValores } from "@/lib/papeis";
-import { Icone } from "@/app/components/Icone";
 
 export const dynamic = "force-dynamic";
 
@@ -41,9 +40,18 @@ export default async function PaginaDeLogistica() {
         verValores={podeVerValores(usuario, dados.projetos)}
         acoes={(s) => (
           <>
-            <Link className="btn-icon" href={`/solicitacoes/${s.id}`} title="Ver">
-              <Icone nome="olho" />
-            </Link>
+            {/* As informações abrem em POPUP sobre a fila — o mesmo
+                padrão do "Informações do Equipamento" do Controle de
+                Estoque. A página do pedido continua no endereço, para
+                link direto e para as ações. */}
+            <DetalheEmPopup
+              solicitacao={s}
+              projetos={dados.projetos}
+              catalogo={dados.catalogo}
+              hoteis={dados.hoteis}
+              perfis={dados.perfis}
+              verValores={podeVerValores(usuario, dados.projetos)}
+            />
             <FecharLogistica solicitacao={s} hoteis={dados.hoteis} catalogo={dados.catalogo} />
           </>
         )}

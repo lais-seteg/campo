@@ -29,6 +29,8 @@ export default async function PaginaDeSolicitacoes() {
       // Para o atalho de conferência direto da lista — o mesmo que o
       // `abrirConferenciaAuto` da versão anterior fazia.
       catalogo={dados.catalogo}
+      // Para o popup de informações resolver o nome de quem aprovou.
+      perfis={dados.perfis}
       nomeDoAdministrativo={usuario.nome}
       // O formulário de solicitação virou POPUP sobre esta lista. Ele não
       // consulta banco — recebe os cadastros prontos, e é daqui que eles

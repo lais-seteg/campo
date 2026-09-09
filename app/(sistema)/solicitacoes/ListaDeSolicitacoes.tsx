@@ -32,6 +32,7 @@ import {
   type DiariaValor,
   type Hotel,
   type Item,
+  type Perfil,
   type Projeto,
   type SolicitacaoDeLista,
 } from "@/lib/tipos";
@@ -50,6 +51,7 @@ import { BotaoExportarCsv, CabecalhoDeSecao, Paginacao, Selo, TabelaVazia } from
 import { Icone } from "@/app/components/Icone";
 import { RegistrarConferencia } from "@/app/(sistema)/conferencia/RegistrarConferencia";
 import { ChecklistEmPopup } from "@/app/(sistema)/solicitacoes/[id]/checklist/ChecklistEmPopup";
+import { DetalheEmPopup } from "@/app/(sistema)/solicitacoes/[id]/DetalheEmPopup";
 
 /** Onde o atalho de conferência da lista faz sentido — o mesmo intervalo
  *  que `solicitacoesParaConferencia` usa para montar a fila da aba. */
@@ -75,6 +77,8 @@ interface Props {
   // previsto passam a chegar por aqui.
   projetos: Projeto[];
   hoteis: Hotel[];
+  /** Para o popup de informações resolver o nome de quem aprovou. */
+  perfis: Perfil[];
   diariasCadastradas: DiariaValor[];
   usuarioId: string;
   solicitanteNome: string;
@@ -99,6 +103,7 @@ export function ListaDeSolicitacoes({
   verValores,
   projetos,
   hoteis,
+  perfis,
   diariasCadastradas,
   usuarioId,
   solicitanteNome,
@@ -303,9 +308,18 @@ export function ListaDeSolicitacoes({
                       <Selo texto={s.status} classe={classeDoStatus(s.status)} />
                     </td>
                     <td className="table-actions">
-                      <Link className="btn-icon" href={`/solicitacoes/${s.id}`} title="Ver solicitação">
-                        <Icone nome="olho" />
-                      </Link>
+                      {/* As informações abrem em POPUP sobre a lista, como no
+                          "Informações do Equipamento" do Controle de Estoque:
+                          sair da tela custaria o filtro, a busca e a página
+                          em que a pessoa está. */}
+                      <DetalheEmPopup
+                        solicitacao={s}
+                        projetos={projetos}
+                        catalogo={catalogo}
+                        hoteis={hoteis}
+                        perfis={perfis}
+                        verValores={verValores}
+                      />
                       {/* Editar abre o popup daqui mesmo. Pedido
                           Finalizado, Cancelado ou Recusado não tem lápis:
                           é registro, e reescrever registro apaga a
