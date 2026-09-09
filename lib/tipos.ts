@@ -422,7 +422,7 @@ export interface SolicitacaoEquipamento {
   folga_dispensada_motivo?: string | null;
 }
 
-export interface SolicitacaoHospedagem {
+export interface SolicitacaoHospedagem extends Acrescentavel {
   id: string;
   solicitacao_id: string;
   cidade: string;

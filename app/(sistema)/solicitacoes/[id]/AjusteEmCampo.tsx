@@ -42,23 +42,34 @@ import { Icone } from "@/app/components/Icone";
 import { useAvisos } from "@/app/components/Avisos";
 import { CampoMascarado } from "@/app/components/Campos";
 import { get, mensagemDoErro, post } from "@/app/components/api";
-import { formatarDataHora, formatarNumeroBR, parseMoeda } from "@/lib/formato";
+import {
+  dataBRparaISO,
+  dataISOparaBR,
+  formatarDataHora,
+  formatarNumeroBR,
+  noitesDeHospedagem,
+  parseMoeda,
+} from "@/lib/formato";
 import { podeEditar } from "@/lib/papeis";
 import {
   GRUPOS_DESPESA,
   VINCULOS,
   type DiariaValor,
   type GrupoDespesa,
+  type Hotel,
   type Item,
   type SolicitacaoAlteracao,
   type SolicitacaoDeLista,
   type Vinculo,
 } from "@/lib/tipos";
 
-type Aba = "material" | "diaria" | "despesa";
+type Aba = "material" | "hospedagem" | "diaria" | "despesa";
 
+// A ordem é a do formulário — material, hospedagem, diária, despesa — para
+// quem já conhece o pedido não ter de reaprender onde fica o quê.
 const ABAS: readonly { chave: Aba; rotulo: string }[] = [
   { chave: "material", rotulo: "Material" },
+  { chave: "hospedagem", rotulo: "Hospedagem" },
   { chave: "diaria", rotulo: "Diária" },
   { chave: "despesa", rotulo: "Despesa" },
 ];
@@ -66,10 +77,13 @@ const ABAS: readonly { chave: Aba; rotulo: string }[] = [
 export function AjusteEmCampo({
   solicitacao: s,
   catalogo,
+  hoteis,
   diarias,
 }: {
   solicitacao: SolicitacaoDeLista;
   catalogo: readonly Item[];
+  /** O cadastro de casas — traz a diária COMBINADA com o hotel. */
+  hoteis: readonly Hotel[];
   /** A tabela de referência da diária — só para SUGERIR o valor. */
   diarias: readonly DiariaValor[];
 }) {
@@ -86,6 +100,16 @@ export function AjusteEmCampo({
   // Material
   const [itemId, setItemId] = useState("");
   const [quantidade, setQuantidade] = useState("1");
+
+  // Hospedagem. Entrada e saída já começam no período do CAMPO: é o caso
+  // normal, e é o que evita a linha nascer sem data — o defeito que a folha
+  // do checklist denunciava com "(? a ?, 0d)".
+  const [cidade, setCidade] = useState("");
+  const [hospedes, setHospedes] = useState("");
+  const [hotelId, setHotelId] = useState("");
+  const [entrada, setEntrada] = useState(() => dataISOparaBR(s.periodo_inicio));
+  const [saida, setSaida] = useState(() => dataISOparaBR(s.periodo_fim));
+  const [diariaHotel, setDiariaHotel] = useState("");
 
   // Diária
   const [colaborador, setColaborador] = useState("");
@@ -120,6 +144,15 @@ export function AjusteEmCampo({
     setMotivo("");
     setItemId("");
     setQuantidade("1");
+    setCidade("");
+    setHospedes("");
+    setHotelId("");
+    // As datas VOLTAM ao período do campo, e não a vazio: quem lançou
+    // Fortaleza vai lançar Caucaia no mesmo período, e apagá-las obrigaria
+    // a redigitar as duas.
+    setEntrada(dataISOparaBR(s.periodo_inicio));
+    setSaida(dataISOparaBR(s.periodo_fim));
+    setDiariaHotel("");
     setColaborador("");
     setTipoDiaria("");
     setDias("1");
@@ -137,33 +170,51 @@ export function AjusteEmCampo({
     if (referencia) setValorDiaria(formatarNumeroBR(referencia.valor));
   }
 
-  async function lancar() {
-    const corpo =
-      aba === "material"
-        ? { tipo: aba, motivo, item_id: itemId, quantidade: Number(quantidade) }
-        : aba === "diaria"
-          ? {
-              tipo: aba,
-              motivo,
-              colaborador,
-              vinculo,
-              tipo_diaria: tipoDiaria,
-              dias: Number(dias),
-              valor_unitario: parseMoeda(valorDiaria),
-            }
-          : { tipo: aba, motivo, grupo, descricao, valor: parseMoeda(valorDespesa) };
+  function corpoDoLancamento(): Record<string, unknown> {
+    switch (aba) {
+      case "material":
+        return { tipo: aba, motivo, item_id: itemId, quantidade: Number(quantidade) };
+      case "hospedagem":
+        return {
+          tipo: aba,
+          motivo,
+          cidade,
+          hospedes,
+          hotel_id: hotelId || null,
+          // Vazio vira `null` e o banco herda o período do campo. Data
+          // meio-digitada ("11/09/") não passa por `dataBRparaISO` e também
+          // sai como `null` — a alternativa seria mandar lixo.
+          entrada: dataBRparaISO(entrada),
+          saida: dataBRparaISO(saida),
+          diaria: parseMoeda(diariaHotel),
+        };
+      case "diaria":
+        return {
+          tipo: aba,
+          motivo,
+          colaborador,
+          vinculo,
+          tipo_diaria: tipoDiaria,
+          dias: Number(dias),
+          valor_unitario: parseMoeda(valorDiaria),
+        };
+      case "despesa":
+        return { tipo: aba, motivo, grupo, descricao, valor: parseMoeda(valorDespesa) };
+    }
+  }
 
+  const CONFIRMACAO: Record<Aba, string> = {
+    material: "Material acrescentado e reservado nas datas do campo.",
+    hospedagem: "Hospedagem acrescentada ao pedido.",
+    diaria: "Diária acrescentada ao pedido.",
+    despesa: "Despesa acrescentada ao pedido.",
+  };
+
+  async function lancar() {
     setOcupado(true);
     try {
-      await post(`/api/solicitacoes/${s.id}/ajustes`, corpo);
-      avisar(
-        aba === "material"
-          ? "Material acrescentado e reservado nas datas do campo."
-          : aba === "diaria"
-            ? "Diária acrescentada ao pedido."
-            : "Despesa acrescentada ao pedido.",
-        "ok"
-      );
+      await post(`/api/solicitacoes/${s.id}/ajustes`, corpoDoLancamento());
+      avisar(CONFIRMACAO[aba], "ok");
       limpar();
       // A janela FICA ABERTA: quem ajusta um campo em andamento raramente
       // ajusta uma coisa só, e fechar obrigaria a reabrir e reencontrar a
@@ -191,6 +242,8 @@ export function AjusteEmCampo({
   // pessoa já tendo escolhido.
   const doCatalogo = catalogo.filter((i) => !i.em_manutencao);
   const tiposDeDiaria = diarias.filter((d) => d.vinculo === vinculo && d.ativo);
+  // A mesma conta do formulário: noites, não dias.
+  const noites = noitesDeHospedagem(dataBRparaISO(entrada), dataBRparaISO(saida));
 
   return (
     <>
@@ -231,6 +284,15 @@ export function AjusteEmCampo({
             </button>
           ))}
         </div>
+
+        {/* A equipe DESTE pedido como sugestão, FORA das abas: ela serve ao
+            "Hospedado(s)" e ao "Quem recebe" da diária, e uma cópia por aba
+            faria a de dentro da aba escondida deixar de existir. */}
+        <datalist id="aj-equipe">
+          {s.equipe.map((e) => (
+            <option key={e.id} value={e.colaborador} />
+          ))}
+        </datalist>
 
         <div className="form-section-block">
           <div className="form-grid">
@@ -274,6 +336,105 @@ export function AjusteEmCampo({
               </>
             ) : null}
 
+            {aba === "hospedagem" ? (
+              <>
+                <div className="form-group">
+                  <label className="form-label required" htmlFor="aj-cidade">
+                    Cidade
+                  </label>
+                  <input
+                    id="aj-cidade"
+                    className="form-control"
+                    placeholder="Onde a equipe vai dormir"
+                    value={cidade}
+                    onChange={(e) => setCidade(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="aj-hospedes">
+                    Hospedado(s)
+                  </label>
+                  <input
+                    id="aj-hospedes"
+                    className="form-control"
+                    list="aj-equipe"
+                    placeholder="Quem dorme nesta cidade"
+                    value={hospedes}
+                    onChange={(e) => setHospedes(e.target.value)}
+                  />
+                </div>
+                <div className="form-group full-width">
+                  <label className="form-label" htmlFor="aj-hotel">
+                    Hotel
+                  </label>
+                  <select
+                    id="aj-hotel"
+                    className="form-control"
+                    value={hotelId}
+                    onChange={(e) => {
+                      // Escolher a casa traz a diária COMBINADA com ela —
+                      // é para isso que o cadastro de hotéis existe.
+                      setHotelId(e.target.value);
+                      const hotel = hoteis.find((h) => h.id === e.target.value);
+                      if (hotel) setDiariaHotel(formatarNumeroBR(hotel.valor_diaria));
+                    }}
+                  >
+                    <option value="">Hotel a definir</option>
+                    {hoteis
+                      .filter((h) => h.ativo)
+                      .map((h) => (
+                        <option key={h.id} value={h.id}>
+                          {h.nome} · {h.municipio}/{h.uf}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="aj-entrada">
+                    Entrada
+                  </label>
+                  <CampoMascarado
+                    id="aj-entrada"
+                    mascara="data"
+                    valor={entrada}
+                    aoMudar={setEntrada}
+                    placeholder="dd/mm/aaaa"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="aj-saida">
+                    Saída
+                  </label>
+                  <CampoMascarado
+                    id="aj-saida"
+                    mascara="data"
+                    valor={saida}
+                    aoMudar={setSaida}
+                    placeholder="dd/mm/aaaa"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="aj-diaria-hotel">
+                    Diária
+                  </label>
+                  <CampoMascarado
+                    id="aj-diaria-hotel"
+                    mascara="moeda"
+                    valor={diariaHotel}
+                    aoMudar={setDiariaHotel}
+                  />
+                </div>
+                <div className="form-group">
+                  <span className="form-label">Diárias no período</span>
+                  <input className="form-control" value={`${noites} diária(s)`} readOnly />
+                </div>
+                <p className="modal-hint full-width">
+                  Diárias são NOITES: entrar e sair no mesmo dia é zero diária — é a conta que o hotel faz.
+                  As datas já vêm com o período do campo; deixá-las em branco também herda esse período.
+                </p>
+              </>
+            ) : null}
+
             {aba === "diaria" ? (
               <>
                 <div className="form-group">
@@ -288,13 +449,6 @@ export function AjusteEmCampo({
                     value={colaborador}
                     onChange={(e) => setColaborador(e.target.value)}
                   />
-                  {/* A equipe DESTE pedido como sugestão: quem recebe diária
-                      deste campo é quem foi a este campo. */}
-                  <datalist id="aj-equipe">
-                    {s.equipe.map((e) => (
-                      <option key={e.id} value={e.colaborador} />
-                    ))}
-                  </datalist>
                 </div>
                 <div className="form-group">
                   <label className="form-label required" htmlFor="aj-vinculo">

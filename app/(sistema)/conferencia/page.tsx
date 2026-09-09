@@ -84,7 +84,12 @@ export default async function PaginaDeConferencia() {
                 porque é aqui que se descobre o que faltou: o balcão da
                 conferência é onde a equipe chega dizendo "precisamos de mais
                 um medidor" e volta dizendo "estendeu dois dias". */}
-            <AjusteEmCampo solicitacao={s} catalogo={dados.catalogo} diarias={dados.diarias} />
+            <AjusteEmCampo
+              solicitacao={s}
+              catalogo={dados.catalogo}
+              hoteis={dados.hoteis}
+              diarias={dados.diarias}
+            />
             <RegistrarConferencia
               solicitacao={s}
               catalogo={dados.catalogo}

@@ -345,6 +345,7 @@ export function ListaDeSolicitacoes({
                       <AjusteEmCampo
                         solicitacao={s}
                         catalogo={catalogo}
+                        hoteis={hoteis}
                         diarias={diariasCadastradas}
                       />
                       {/* O atalho de conferência direto da lista, como no

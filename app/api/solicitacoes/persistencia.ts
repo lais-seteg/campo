@@ -45,18 +45,19 @@ export function cabecalhoDe(dados: CorpoDeSolicitacao) {
  *     linha é a obrigação de devolver. Apagá-la faria a devolução não ter o
  *     que conferir e o estoque nunca receber o item de volta.
  *
- *   · Diária e despesa ACRESCENTADAS em campo ficam (supabase/17). Elas
- *     entraram por outro ato, com motivo e histórico próprios, depois de o
- *     formulário ter sido enviado. Sem esta exceção, a diária lançada hoje
- *     porque o campo estendeu desaparecia na próxima correção de qualquer
- *     outro campo do pedido — e num pedido do tipo Administrativo, que não
- *     envia diárias, ela era apagada e nunca reescrita.
+ *   · Hospedagem, diária e despesa ACRESCENTADAS em campo ficam
+ *     (supabase/17). Elas entraram por outro ato, com motivo e histórico
+ *     próprios, depois de o formulário ter sido enviado. Sem esta exceção, a
+ *     diária lançada hoje porque o campo estendeu desaparecia na próxima
+ *     correção de qualquer outro campo do pedido — e num pedido do tipo
+ *     Administrativo, que não envia diárias, ela era apagada e nunca
+ *     reescrita.
  *
  * Quem monta o formulário filtra as mesmas linhas para fora
  * (`carregarNoFormulario`), senão elas seriam reenviadas e duplicariam.
  */
 export async function limparFilhas(sb: SupabaseClient, id: string): Promise<void> {
-  const tabelas = ["solicitacao_equipe", "solicitacao_sst_epis", "solicitacao_hospedagens"];
+  const tabelas = ["solicitacao_equipe", "solicitacao_sst_epis"];
 
   for (const tabela of tabelas) {
     const { error } = await sb.from(tabela).delete().eq("solicitacao_id", id);
@@ -65,7 +66,7 @@ export async function limparFilhas(sb: SupabaseClient, id: string): Promise<void
     if (error && !tabelaNaoExiste(error)) throw error;
   }
 
-  for (const tabela of ["solicitacao_despesas", "solicitacao_diarias"]) {
+  for (const tabela of ["solicitacao_hospedagens", "solicitacao_despesas", "solicitacao_diarias"]) {
     const { error } = await sb
       .from(tabela)
       .delete()

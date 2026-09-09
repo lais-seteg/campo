@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════
 //  POST /api/solicitacoes/[id]/ajustes — o ajuste do campo em andamento.
 //
-//  Corpo: { tipo: "material" | "diaria" | "despesa", motivo?, ... }
+//  Corpo: { tipo: "material" | "hospedagem" | "diaria" | "despesa",
+//           motivo?, ... }
 //
 //  ── POR QUE NÃO É A EDIÇÃO DO PEDIDO ──
 //
@@ -43,6 +44,7 @@ import { GRUPOS_DESPESA, VINCULOS } from "@/lib/tipos";
 export const dynamic = "force-dynamic";
 
 const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const RE_DATA = /^\d{4}-\d{2}-\d{2}$/;
 const VALOR_MAX = 99_999_999.99;
 const MOTIVO_MAX = 500;
 
@@ -87,6 +89,40 @@ export async function POST(request: NextRequest, { params }: Contexto) {
         p_item: itemId,
         p_quantidade: qtd,
         p_descricao: null,
+        p_motivo: motivo,
+      };
+      break;
+    }
+
+    case "hospedagem": {
+      const cidade = texto(c.cidade, 200);
+      if (!cidade) return NextResponse.json({ error: "Informe a cidade." }, { status: 400 });
+
+      const hotel = typeof c.hotel_id === "string" && RE_UUID.test(c.hotel_id) ? c.hotel_id : null;
+
+      // As datas são OPCIONAIS aqui e a função herda o período do campo
+      // quando faltam — que é o caso normal, dorme-se lá enquanto o campo
+      // dura. Exigi-las obrigaria a redigitar o que o pedido já sabe.
+      // `dataISO` e não `data`: o `const { data } = await sb.rpc(...)` lá
+      // embaixo é do mesmo escopo e sombreia o nome.
+      const entrada = dataISO(c.entrada);
+      const saida = dataISO(c.saida);
+      if (entrada === false || saida === false) {
+        return NextResponse.json({ error: "Data de hospedagem inválida." }, { status: 400 });
+      }
+
+      const diaria = dinheiro(c.diaria ?? 0);
+      if (diaria === null) return NextResponse.json({ error: "Valor da diária inválido." }, { status: 400 });
+
+      funcao = "acrescentar_hospedagem_solicitacao";
+      argumentos = {
+        p_solicitacao: params.id,
+        p_cidade: cidade,
+        p_hospedes: texto(c.hospedes, 500),
+        p_hotel: hotel,
+        p_entrada: entrada,
+        p_saida: saida,
+        p_diaria: diaria,
         p_motivo: motivo,
       };
       break;
@@ -159,7 +195,7 @@ export async function POST(request: NextRequest, { params }: Contexto) {
 
     default:
       return NextResponse.json(
-        { error: "Diga o que está sendo acrescentado: material, diária ou despesa." },
+        { error: "Diga o que está sendo acrescentado: material, hospedagem, diária ou despesa." },
         { status: 400 }
       );
   }
@@ -189,6 +225,20 @@ function dinheiro(valor: unknown): number | null {
   const n = Number(valor);
   if (!Number.isFinite(n) || n < 0 || n > VALOR_MAX) return null;
   return Math.round(n * 100) / 100;
+}
+
+/**
+ * Data opcional em ISO. Três respostas, e a do meio é a que importa:
+ * `null` = não vem (a função do banco herda o período do campo),
+ * a string = veio válida, `false` = veio ERRADA.
+ *
+ * Sem o `false`, uma data malformada viraria `null` e o pedido ganharia
+ * silenciosamente as datas do campo em vez de recusar o que se digitou.
+ */
+function dataISO(valor: unknown): string | null | false {
+  if (valor === null || valor === undefined || valor === "") return null;
+  if (typeof valor !== "string" || !RE_DATA.test(valor)) return false;
+  return valor;
 }
 
 function daLista<T extends string>(valor: unknown, lista: readonly T[]): T | null {

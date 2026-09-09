@@ -79,10 +79,16 @@ alter table public.solicitacao_despesas
   add column if not exists acrescentado_em  timestamptz,
   add column if not exists acrescentado_por uuid references auth.users(id) on delete set null;
 
+alter table public.solicitacao_hospedagens
+  add column if not exists acrescentado_em  timestamptz,
+  add column if not exists acrescentado_por uuid references auth.users(id) on delete set null;
+
 comment on column public.solicitacao_diarias.acrescentado_em is
   'Preenchida quando a linha entrou por AJUSTE EM CAMPO (acrescentar_diaria_solicitacao) e não pelo formulário. Linha marcada não é apagada pela edição do pedido.';
 comment on column public.solicitacao_despesas.acrescentado_em is
   'Preenchida quando a linha entrou por AJUSTE EM CAMPO (acrescentar_despesa_solicitacao) e não pelo formulário. Linha marcada não é apagada pela edição do pedido.';
+comment on column public.solicitacao_hospedagens.acrescentado_em is
+  'Preenchida quando a linha entrou por AJUSTE EM CAMPO (acrescentar_hospedagem_solicitacao) e não pelo formulário. Linha marcada não é apagada pela edição do pedido.';
 
 -- Índice parcial: as consultas que interessam são "quais linhas desta
 -- solicitação são acréscimo?" — e acréscimo é a minoria das linhas.
@@ -91,6 +97,9 @@ create index if not exists solicitacao_diarias_acrescimo_idx
   where acrescentado_em is not null;
 create index if not exists solicitacao_despesas_acrescimo_idx
   on public.solicitacao_despesas (solicitacao_id)
+  where acrescentado_em is not null;
+create index if not exists solicitacao_hospedagens_acrescimo_idx
+  on public.solicitacao_hospedagens (solicitacao_id)
   where acrescentado_em is not null;
 
 
@@ -294,6 +303,103 @@ comment on function public.acrescentar_despesa_solicitacao(uuid,text,text,numeri
 
 revoke all on function public.acrescentar_despesa_solicitacao(uuid,text,text,numeric,text) from public;
 grant execute on function public.acrescentar_despesa_solicitacao(uuid,text,text,numeric,text) to authenticated;
+
+
+-- ─────────────────────────────────────────────────────────────────────
+--  5.1 · ACRESCENTAR HOSPEDAGEM
+-- ─────────────────────────────────────────────────────────────────────
+--
+-- Campo que estende dorme uma noite a mais, e campo que muda de base dorme
+-- em outra cidade. Era o acréscimo que faltava — e o mais caro dos quatro
+-- para deixar de fora, porque hospedagem não lançada é reserva que ninguém
+-- pagou e hotel que cobra depois.
+--
+-- SEM DATAS, HERDA O PERÍODO DO CAMPO. É o caso normal (dorme-se lá
+-- enquanto o campo dura) e é o que evita a linha nascer em branco — o mesmo
+-- defeito que a folha do checklist denunciava com "(? a ?, 0d)" e que a
+-- seção 7 corrigiu no passado.
+
+create or replace function public.acrescentar_hospedagem_solicitacao(
+  p_solicitacao uuid,
+  p_cidade      text,
+  p_hospedes    text default null,
+  p_hotel       uuid default null,
+  p_entrada     date default null,
+  p_saida       date default null,
+  p_diaria      numeric default 0,
+  p_motivo      text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_id uuid;
+  v_cidade text;
+  v_entrada date;
+  v_saida date;
+  v_dias integer;
+  v_hotel text;
+begin
+  perform public.exigir_pedido_ajustavel(p_solicitacao);
+
+  v_cidade := nullif(btrim(coalesce(p_cidade, '')), '');
+  if v_cidade is null then
+    raise exception 'Informe a cidade da hospedagem.';
+  end if;
+
+  select coalesce(p_entrada, s.periodo_inicio), coalesce(p_saida, s.periodo_fim)
+    into v_entrada, v_saida
+    from public.solicitacoes s where s.id = p_solicitacao;
+
+  if v_entrada is not null and v_saida is not null and v_saida < v_entrada then
+    raise exception 'A saída da hospedagem não pode ser antes da entrada.';
+  end if;
+
+  -- Diárias são NOITES: entrar e sair no mesmo dia é zero diária. É a conta
+  -- que o hotel faz, e é a mesma de `noitesDaLinha` no formulário.
+  v_dias := case
+    when v_entrada is null or v_saida is null then 0
+    else greatest((v_saida - v_entrada), 0)
+  end;
+
+  insert into public.solicitacao_hospedagens
+    (solicitacao_id, cidade, hospedes, hotel_id, entrada, saida, dias,
+     diaria_prevista, acrescentado_em, acrescentado_por)
+  values
+    (p_solicitacao, upper(v_cidade), nullif(btrim(coalesce(p_hospedes, '')), ''),
+     p_hotel, v_entrada, v_saida, v_dias,
+     coalesce(p_diaria, 0), now(), (select auth.uid()))
+  returning id into v_id;
+
+  if p_hotel is not null then
+    select h.nome into v_hotel from public.hoteis h where h.id = p_hotel;
+  end if;
+
+  insert into public.solicitacao_alteracoes (solicitacao_id, tipo, campo, de, para)
+  values (p_solicitacao, 'Acréscimo', 'Hospedagem', null,
+          format('%s%s · %s%s · R$ %s/dia%s',
+                 upper(v_cidade),
+                 coalesce(' (' || v_hotel || ')', ''),
+                 case
+                   when v_entrada is null or v_saida is null then 'datas a definir'
+                   else to_char(v_entrada, 'DD/MM/YYYY') || ' a ' || to_char(v_saida, 'DD/MM/YYYY')
+                 end,
+                 case when v_dias > 0 then format(', %s diária(s)', v_dias) else '' end,
+                 public.dinheiro_em_texto(coalesce(p_diaria, 0)),
+                 coalesce(' · ' || nullif(btrim(coalesce(p_hospedes, '')), ''), '')
+                 || coalesce(' · ' || nullif(btrim(coalesce(p_motivo, '')), ''), '')));
+
+  return v_id;
+end;
+$$;
+
+comment on function public.acrescentar_hospedagem_solicitacao(uuid,text,text,uuid,date,date,numeric,text) is
+  'Acrescenta uma hospedagem a um pedido em andamento, marcada como acréscimo (não é apagada pela edição) e registrada no histórico. Sem datas, herda o período do campo.';
+
+revoke all on function public.acrescentar_hospedagem_solicitacao(uuid,text,text,uuid,date,date,numeric,text) from public;
+grant execute on function public.acrescentar_hospedagem_solicitacao(uuid,text,text,uuid,date,date,numeric,text) to authenticated;
 
 
 -- ─────────────────────────────────────────────────────────────────────

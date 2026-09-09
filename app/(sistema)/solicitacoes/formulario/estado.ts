@@ -24,7 +24,14 @@ import type {
   TipoSolicitacao,
   Vinculo,
 } from "@/lib/tipos";
-import { dataBRparaISO, dataISOparaBR, diasDeCampo, formatarNumeroBR, parseMoeda } from "@/lib/formato";
+import {
+  dataBRparaISO,
+  dataISOparaBR,
+  diasDeCampo,
+  formatarNumeroBR,
+  noitesDeHospedagem,
+  parseMoeda,
+} from "@/lib/formato";
 import { referenciaDaDiaria } from "@/lib/listas";
 
 // A equipe NÃO tem mais código Clockify por pessoa. O código que importa é
@@ -347,15 +354,20 @@ export function formularioDeSolicitacao(s: SolicitacaoDeLista): EstadoDoFormular
     horaEntrega: s.veiculo_hora_entrega ?? "",
 
     hospedagemNecessaria: s.hospedagem_necessaria,
-    hospedagens: s.hospedagens.map((h) => ({
-      chave: novaChave(),
-      cidade: h.cidade,
-      hospedes: h.hospedes ?? "",
-      hotelId: h.hotel_id ?? "",
-      entrada: dataISOparaBR(h.entrada),
-      saida: dataISOparaBR(h.saida),
-      diaria: formatarNumeroBR(h.diaria_real ?? h.diaria_prevista),
-    })),
+    // A hospedagem acrescentada em campo fica fora, pelo mesmo motivo da
+    // diária e da despesa logo abaixo: a edição não a apaga, então mostrá-la
+    // aqui faria o formulário reenviá-la e duplicar a linha.
+    hospedagens: s.hospedagens
+      .filter((h) => !h.acrescentado_em)
+      .map((h) => ({
+        chave: novaChave(),
+        cidade: h.cidade,
+        hospedes: h.hospedes ?? "",
+        hotelId: h.hotel_id ?? "",
+        entrada: dataISOparaBR(h.entrada),
+        saida: dataISOparaBR(h.saida),
+        diaria: formatarNumeroBR(h.diaria_real ?? h.diaria_prevista),
+      })),
 
     equipamentos: s.equipamentos
       .filter((e) => !e.entregue && e.item_id)
@@ -558,15 +570,10 @@ export function montarCorpo(f: EstadoDoFormulario): Record<string, unknown> {
   };
 }
 
-/** Diárias de hotel: NOITES, não dias. Entrar e sair no mesmo dia é zero
- *  diária — é a conta que o hotel faz. */
+/** Diárias de hotel: NOITES, não dias. A conta vive em
+ *  `noitesDeHospedagem` — aqui só se traduz a data BR do formulário. */
 export function noitesDaLinha(h: LinhaDeHospedagemForm): number {
-  const entrada = dataBRparaISO(h.entrada);
-  const saida = dataBRparaISO(h.saida);
-  if (!entrada || !saida) return 0;
-  const a = new Date(`${entrada}T00:00:00.000Z`).getTime();
-  const b = new Date(`${saida}T00:00:00.000Z`).getTime();
-  return Math.max(0, Math.round((b - a) / 86400000));
+  return noitesDeHospedagem(dataBRparaISO(h.entrada), dataBRparaISO(h.saida));
 }
 
 // ─── Sugestão de previsto ────────────────────────────────────────────────

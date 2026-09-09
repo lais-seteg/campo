@@ -159,6 +159,28 @@ export function diasDeCampo(inicio: string | null | undefined, fim: string | nul
   return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000) + 1);
 }
 
+/**
+ * NOITES de hotel, que é outra conta — e é justamente por ser outra que ela
+ * mora aqui e não vira um parâmetro de `diasDeCampo`.
+ *
+ * Campo conta as duas pontas: sair e voltar no mesmo dia é UM dia de campo.
+ * Hotel conta as noites: entrar e sair no mesmo dia é ZERO diária, porque
+ * ninguém dormiu. É a conta que a casa faz, e confundir as duas gera fatura
+ * com um dia a mais em toda hospedagem.
+ *
+ * A mesma função serve o formulário e o ajuste em campo. Duas cópias desta
+ * subtração é onde uma delas ganha o `+ 1` por descuido.
+ */
+export function noitesDeHospedagem(
+  entrada: string | null | undefined,
+  saida: string | null | undefined
+): number {
+  const a = soData(entrada);
+  const b = soData(saida);
+  if (!a || !b) return 0;
+  return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000));
+}
+
 export function mesmoDia(a: Date | null, b: Date | null): boolean {
   if (!a || !b) return false;
   return a.getTime() === b.getTime();
