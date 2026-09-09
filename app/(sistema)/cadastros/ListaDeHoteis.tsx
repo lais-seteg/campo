@@ -11,7 +11,7 @@
 // solicitações a casa aparece antes de perguntar.
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Modal } from "@/app/components/Modal";
 import { useAvisos } from "@/app/components/Avisos";
 import { CampoMascarado, Caixa, Grupo } from "@/app/components/Campos";
@@ -91,9 +91,12 @@ interface Props {
   usosPorHotel: Record<string, number>;
   podeExcluir: boolean;
   v2Ativa: boolean;
+  /** As abas dos cadastros, para entrarem na MESMA linha dos filtros — ver
+   *  o comentário em TelaDeCadastros. Chegam prontas de lá. */
+  abas?: ReactNode;
 }
 
-export function ListaDeHoteis({ hoteis, usosPorHotel, podeExcluir, v2Ativa }: Props) {
+export function ListaDeHoteis({ hoteis, usosPorHotel, podeExcluir, v2Ativa, abas }: Props) {
   const roteador = useRouter();
   const { avisar } = useAvisos();
 
@@ -193,6 +196,7 @@ export function ListaDeHoteis({ hoteis, usosPorHotel, podeExcluir, v2Ativa }: Pr
     <div className="lista-wrapper">
       <div className="table-controls">
         <div className="filter-row">
+          {abas}
           <select
             className="form-control filter-select"
             value={uf}

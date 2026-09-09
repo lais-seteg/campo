@@ -340,7 +340,6 @@ export function ListaDeSolicitacoes({
                           solicitacao={s}
                           catalogo={catalogo}
                           nomeDoAdministrativo={nomeDoAdministrativo}
-                          compacto
                         />
                       ) : null}
                     </td>

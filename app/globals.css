@@ -331,9 +331,20 @@ button,input,select,textarea{font-family:inherit}
 .art-table td{padding:.6rem .7rem;border-bottom:1px solid var(--border-color);color:var(--text-primary);vertical-align:middle}
 .art-table tbody tr:last-child td{border-bottom:none}
 .art-table tbody tr:hover{background:var(--bg-card-hover)}
-.col-acoes{width:100px;text-align:center}
-.col-acoes-lg{width:160px;text-align:center}
-.table-actions{display:flex;gap:.3rem;justify-content:flex-start}
+/* ── A COLUNA DE AÇÕES CABE NO QUE TEM DENTRO ──
+   Era `width:100px`. Largura fixa numa coluna cujo conteúdo varia (dois
+   ícones aqui, três e um botão com texto ali) é o que fazia os ícones se
+   SOBREPOREM: `td.table-actions` é um flex, `.btn-icon` tem largura fixa mas
+   `flex-shrink` continuava em 1, então os botões eram comprimidos abaixo dos
+   27px e o desenho de um invadia o do vizinho.
+
+   `width:1%` + `white-space:nowrap` é o idioma de tabela para "a coluna toma
+   a menor largura que couber o conteúdo": o navegador dá a ela o necessário
+   e distribui o resto entre as outras. Com `flex-shrink:0` nos botões, nada
+   mais é comprimido — se faltar espaço, a tabela rola, que é recuperável. */
+.col-acoes,.col-acoes-lg,.col-acoes-fila{width:1%;white-space:nowrap;text-align:center}
+.table-actions{display:flex;gap:.3rem;justify-content:center;flex-wrap:nowrap}
+.table-actions>*{flex-shrink:0}
 .tabela-centralizada th,.tabela-centralizada td{text-align:center}
 /* A segunda linha de uma célula: a composição por trás do número (quantas
    categorias somam aquele total, quantas avarias somam aquele custo). */
@@ -349,13 +360,10 @@ button,input,select,textarea{font-family:inherit}
   text-align:left;max-width:22rem;white-space:normal;
   font-size:.72rem;color:var(--text-secondary)
 }
-/* As ações destas filas são botão COM TEXTO ("Aprovar", "Recusar",
-   "Fechar logística"), não os ícones de 27px da lista de solicitações —
-   daí a coluna mais larga que `.col-acoes`. E quebram em duas linhas
-   quando não cabem, em vez de esticar a coluna: a tabela já rola na
-   horizontal, e é melhor gastar altura de UMA linha do que largura de
-   todas. */
-.col-acoes-fila{width:180px;text-align:center}
+/* Nas filas ainda há botão com TEXTO ("Aprovar", "Recusar", "Fechar"), ao
+   lado dos ícones. Eles podem quebrar em duas linhas quando a tela aperta —
+   gastar altura de uma linha é melhor que empurrar a tabela inteira para
+   fora da largura. A largura da coluna sai do conteúdo, como nas demais. */
 td.table-actions.acoes-fila{flex-wrap:wrap;justify-content:center;gap:.25rem}
 .btn-icon{width:27px;height:27px;padding:0;border-radius:var(--radius-sm);font-size:.82rem;display:flex;align-items:center;justify-content:center;border:1px solid rgba(63,111,217,.28);background:rgba(63,111,217,.08);color:var(--blue-light-text);cursor:pointer;transition:all .2s ease}
 .btn-icon:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
@@ -1393,7 +1401,16 @@ input.form-control.sst-na{color:var(--text-muted);font-weight:700}
 }
 
 /* ─── Cadastros: três listas na mesma aba ───────────── */
-.cad-abas{display:flex;gap:.3rem;margin-bottom:.7rem;flex-wrap:wrap}
+/* ── AS ABAS MORAM NA LINHA DOS FILTROS ──
+   Eram uma faixa própria acima da lista, com `margin-bottom` — uma linha
+   inteira da altura da tela gasta com dois botões. Agora são o primeiro item
+   da `.filter-row`, ao lado de estado, município, busca, CSV e "+ Novo
+   hotel": tudo numa linha, e a altura que sobra é da tabela.
+
+   `flex-shrink:0` e `nowrap` porque elas são navegação: quem cede espaço
+   numa linha apertada é a busca (que já tem `flex:1`), nunca o botão que
+   troca de tela. */
+.cad-abas{display:flex;gap:.3rem;flex-wrap:nowrap;flex-shrink:0;padding-right:.5rem;border-right:1px solid var(--border-light)}
 .cad-aba{padding:.4rem .9rem;border:1px solid var(--border-light);border-radius:var(--radius-md);background:var(--bg-card);color:var(--text-secondary);font-family:inherit;font-size:.78rem;font-weight:700;cursor:pointer;transition:var(--transition)}
 .cad-aba:hover{background:var(--bg-card-hover);color:var(--text-primary)}
 .cad-aba.active{background:var(--blue);border-color:var(--blue);color:#fff}

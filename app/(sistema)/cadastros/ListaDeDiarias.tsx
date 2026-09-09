@@ -12,7 +12,7 @@
 // criar outra diária.
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Modal } from "@/app/components/Modal";
 import { useAvisos } from "@/app/components/Avisos";
 import { CampoMascarado } from "@/app/components/Campos";
@@ -26,9 +26,11 @@ interface Props {
   diarias: DiariaValor[];
   podeEditar: boolean;
   v2Ativa: boolean;
+  /** As abas dos cadastros, na mesma linha — ver TelaDeCadastros. */
+  abas?: ReactNode;
 }
 
-export function ListaDeDiarias({ diarias, podeEditar, v2Ativa }: Props) {
+export function ListaDeDiarias({ diarias, podeEditar, v2Ativa, abas }: Props) {
   const roteador = useRouter();
   const { avisar } = useAvisos();
 
@@ -63,6 +65,9 @@ export function ListaDeDiarias({ diarias, podeEditar, v2Ativa }: Props) {
   return (
     <div className="lista-wrapper">
       <div className="table-controls">
+        {/* As abas ficam na mesma linha aqui também: a tela é uma só e não
+            pode trocar de forma ao mudar de aba. */}
+        {abas ? <div className="filter-row">{abas}</div> : null}
         <div className="filter-resumo">
           {!v2Ativa
             ? "Rode supabase/02_campo_v2.sql para a tabela de diárias existir."

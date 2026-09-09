@@ -52,15 +52,10 @@ export function RegistrarConferencia({
   solicitacao: s,
   catalogo,
   nomeDoAdministrativo,
-  compacto = false,
 }: {
   solicitacao: SolicitacaoDeLista;
   catalogo: Item[];
   nomeDoAdministrativo: string;
-  /** Só o ícone, para a coluna de ações da tabela de solicitações — que é
-   *  estreita e já tem dois botões. Na fila da Conferência o botão vem
-   *  escrito por extenso, porque lá ele é a ação principal do cartão. */
-  compacto?: boolean;
 }) {
   const roteador = useRouter();
   const { avisar } = useAvisos();
@@ -174,20 +169,20 @@ export function RegistrarConferencia({
 
   return (
     <>
-      {compacto ? (
-        <button
-          className="btn-icon"
-          type="button"
-          title={entrega ? "Registrar entrega" : "Registrar devolução"}
-          onClick={() => setAberto(true)}
-        >
-          <Icone nome="caminhao" />
-        </button>
-      ) : (
-        <button className="btn btn-primary btn-sm" type="button" onClick={() => setAberto(true)}>
-          {entrega ? "Registrar entrega" : "Registrar devolução"}
-        </button>
-      )}
+      {/* SEMPRE ícone, nunca texto. Numa coluna de ações ao lado de outros
+          botões de 27px, um "Registrar devolução" escrito é três vezes mais
+          largo que os vizinhos e empurra a coluna inteira. O nome da ação
+          não desaparece: vai para o `title` e para o `aria-label`, que é o
+          mesmo tratamento das abas do menu em tela estreita. */}
+      <button
+        className="btn-icon"
+        type="button"
+        title={entrega ? "Registrar entrega" : "Registrar devolução"}
+        aria-label={entrega ? "Registrar entrega" : "Registrar devolução"}
+        onClick={() => setAberto(true)}
+      >
+        <Icone nome="caminhao" />
+      </button>
 
       <Modal
         titulo={`${entrega ? "Entrega" : "Devolução"} · ${s.codigo}`}
